@@ -1,0 +1,6 @@
+# pythonpath = "." puts backend/ on the import path so `from app.schemas import ...`
+# resolves under a bare `pytest` run — including IDE test runners, which invoke
+# pytest directly rather than `python -m pytest`.
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

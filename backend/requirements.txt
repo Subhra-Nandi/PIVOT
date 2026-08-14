@@ -1,0 +1,5 @@
+# Phase 0 — schema layer only. Later phases add fastapi/uvicorn (endpoint),
+# pdfplumber/unstructured (ingestion), and the LLM provider SDKs (extraction).
+pydantic>=2.6,<3
+pytest>=8,<9
+
