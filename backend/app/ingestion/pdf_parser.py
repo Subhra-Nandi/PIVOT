@@ -21,6 +21,22 @@ from app.ingestion.models import BlockType, ContentBlock, IngestedDocument, Sour
 from app.ingestion.utils import make_block_id, normalize_whitespace, table_to_text
 
 
+def _outside_bboxes(obj, bboxes) -> bool:
+    """True if a pdfplumber object's midpoint falls outside every table bbox.
+
+    Used to drop table cell text from the page-level text pass, so a table's
+    content lives in exactly one block (TABLE) rather than being duplicated
+    into a TEXT block as well — pdfplumber's extract_text() includes table
+    text by default.
+    """
+    h_mid = (obj["x0"] + obj["x1"]) / 2
+    v_mid = (obj["top"] + obj["bottom"]) / 2
+    for x0, top, x1, bottom in bboxes:
+        if x0 <= h_mid < x1 and top <= v_mid < bottom:
+            return False
+    return True
+
+
 def parse_pdf(path: str) -> IngestedDocument:
     """Parse a PDF file into an `IngestedDocument`.
 
@@ -44,40 +60,61 @@ def parse_pdf(path: str) -> IngestedDocument:
                 page_had_content = False
 
                 try:
-                    raw_tables = page.extract_tables() or []
+                    found_tables = page.find_tables()
                 except Exception as exc:
-                    raw_tables = []
-                    warnings.append(f"page {page_number}: table extraction failed ({exc})")
+                    found_tables = []
+                    warnings.append(f"page {page_number}: table detection failed ({exc})")
 
-                for table_rows in raw_tables:
+                # Collect this page's content with its vertical position
+                # (pdfplumber `top` grows downward) so blocks are emitted in
+                # reading order rather than "all tables, then text" — matching
+                # the order-preservation the DOCX parser already gives.
+                page_items = []  # list of (top, BlockType, payload)
+                table_bboxes = []
+                for found in found_tables:
+                    table_rows = found.extract()
                     if not table_rows:
                         continue
-                    page_had_content = True
-                    blocks.append(
-                        ContentBlock(
-                            block_id=make_block_id(block_index),
-                            type=BlockType.TABLE,
-                            table=table_rows,
-                            page=page_number,
-                        )
-                    )
-                    block_index += 1
-                    raw_text_parts.append(table_to_text(table_rows))
+                    table_bboxes.append(found.bbox)
+                    page_items.append((found.bbox[1], BlockType.TABLE, table_rows))
 
-                text = page.extract_text() or ""
-                text = normalize_whitespace(text)
+                # Page text EXCLUDING detected table regions, so a table's cell
+                # content isn't duplicated into a TEXT block as well —
+                # pdfplumber's extract_text() includes table text by default.
+                text_source = (
+                    page.filter(lambda obj, _bb=table_bboxes: _outside_bboxes(obj, _bb))
+                    if table_bboxes
+                    else page
+                )
+                text = normalize_whitespace(text_source.extract_text() or "")
                 if text:
+                    text_top = min((c["top"] for c in text_source.chars), default=0.0)
+                    page_items.append((text_top, BlockType.TEXT, text))
+
+                page_items.sort(key=lambda item: item[0])
+                for _top, block_type, payload in page_items:
                     page_had_content = True
-                    blocks.append(
-                        ContentBlock(
-                            block_id=make_block_id(block_index),
-                            type=BlockType.TEXT,
-                            text=text,
-                            page=page_number,
+                    if block_type == BlockType.TABLE:
+                        blocks.append(
+                            ContentBlock(
+                                block_id=make_block_id(block_index),
+                                type=BlockType.TABLE,
+                                table=payload,
+                                page=page_number,
+                            )
                         )
-                    )
+                        raw_text_parts.append(table_to_text(payload))
+                    else:
+                        blocks.append(
+                            ContentBlock(
+                                block_id=make_block_id(block_index),
+                                type=BlockType.TEXT,
+                                text=payload,
+                                page=page_number,
+                            )
+                        )
+                        raw_text_parts.append(payload)
                     block_index += 1
-                    raw_text_parts.append(text)
 
                 if not page_had_content:
                     warnings.append(

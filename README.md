@@ -45,7 +45,7 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-If you see `18 passed`, the schema layer and document ingestion pipeline are
+If you see `21 passed`, the schema layer and document ingestion pipeline are
 working and you're ready to build.
 > **PowerShell blocks `Activate.ps1`?** Run once per terminal session: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` — or skip activation and call the venv Python directly: `.venv\Scripts\python.exe -m pytest -q`
 
@@ -98,10 +98,19 @@ should import — it dispatches to the right parser by file extension and
 returns a normalized `IngestedDocument`, regardless of whether the source was
 a PDF or a DOCX.
 
+> **Deferred - spreadsheet catalogs (to be added later).** `ingest_document`
+> currently handles **PDF and DOCX only**. Spreadsheet catalogs (XLSX / CSV) and
+> splitting one multi-product catalog into separate records are **not yet
+> supported** - intentionally left for a later pass, since there are no
+> spreadsheet sample sources in the repo yet and multi-product splitting may
+> belong in Phase 3 (extraction) rather than here. Adding a format is a clean
+> drop-in: a new `<format>_parser.py` plus one line in the `_PARSERS` dict in
+> `base.py` - nothing that already imports `ingest_document` needs to change.
+
 ## Roadmap
 
 - [x] **Phase 0** — Schema & stack
-- [x] **Phase 1** — Document ingestion (PDF / DOCX / catalogs)
+- [x] **Phase 1** — Document ingestion (PDF / DOCX) — spreadsheet catalogs (XLSX / CSV) deferred, see note above
 - [ ] **Phase 2** — Website ingestion (MCP-based)
 - [ ] **Phase 3** — Schema-guided LLM extraction
 - [ ] **Phase 4** — Validation layer (per-field confidence, conflict detection)

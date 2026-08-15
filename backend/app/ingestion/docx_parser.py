@@ -53,6 +53,7 @@ def parse_docx(path: str) -> IngestedDocument:
     warnings: list[str] = []
     block_index = 0
     current_section: str | None = None
+    saw_heading = False
 
     body = document.element.body
     para_map = {p._element: p for p in document.paragraphs}
@@ -66,6 +67,7 @@ def parse_docx(path: str) -> IngestedDocument:
                 continue
             if _is_heading(paragraph):
                 current_section = text
+                saw_heading = True
                 blocks.append(
                     ContentBlock(
                         block_id=make_block_id(block_index),
@@ -106,6 +108,11 @@ def parse_docx(path: str) -> IngestedDocument:
 
     if not blocks:
         warnings.append("document produced no extractable text or tables")
+    elif not saw_heading:
+        warnings.append(
+            "no heading styles found — blocks have no section anchor, so Phase 5 "
+            "citations for this document will be weaker (filename only)"
+        )
 
     return IngestedDocument(
         source_filename=filename,

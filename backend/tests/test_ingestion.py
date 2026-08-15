@@ -52,6 +52,25 @@ def blank_pdf_path(tmp_path):
 
 
 @pytest.fixture()
+def table_pdf_path(tmp_path):
+    """A PDF whose page has body text AND a bordered table — used to confirm the
+    table's cell text isn't duplicated into a TEXT block as well."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=11)
+    pdf.cell(0, 10, "Body line OUTSIDETABLE marker", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+    with pdf.table() as table:
+        for row in [["Attribute", "Value"], ["Marker", "INTABLE_SENTINEL"]]:
+            r = table.row()
+            for cell in row:
+                r.cell(cell)
+    path = tmp_path / "table.pdf"
+    pdf.output(str(path))
+    return str(path)
+
+
+@pytest.fixture()
 def sample_docx_path(tmp_path):
     doc = DocxDocument()
     doc.add_heading("Electrical Ratings", level=1)
@@ -102,6 +121,39 @@ def test_parse_pdf_missing_file_raises():
         ingest_document("/tmp/does-not-exist-12345.pdf")
 
 
+def test_parse_pdf_table_text_not_duplicated(table_pdf_path):
+    """Regression: a table's cell text must land in exactly one block (TABLE),
+    not also be swept into a TEXT block by page.extract_text()."""
+    result = ingest_document(table_pdf_path)
+
+    table_blocks = [b for b in result.blocks if b.type == BlockType.TABLE]
+    text_blocks = [b for b in result.blocks if b.type == BlockType.TEXT]
+
+    # The table was detected and its sentinel cell is present in a TABLE block.
+    assert len(table_blocks) == 1
+    table_cells = [c for row in table_blocks[0].table for c in row]
+    assert "INTABLE_SENTINEL" in table_cells
+
+    # The sentinel must NOT appear in any TEXT block (that was the duplication).
+    assert all("INTABLE_SENTINEL" not in (b.text or "") for b in text_blocks)
+
+    # And it appears exactly once across the whole raw_text convenience view.
+    assert result.raw_text.count("INTABLE_SENTINEL") == 1
+
+    # Body text outside the table is still captured in a TEXT block.
+    assert any("OUTSIDETABLE" in (b.text or "") for b in text_blocks)
+
+
+def test_parse_pdf_preserves_reading_order(table_pdf_path):
+    """The body line sits ABOVE the table on the page, so its TEXT block must be
+    emitted before the TABLE block — not "all tables first, then text"."""
+    result = ingest_document(table_pdf_path)
+    order = [b.type for b in result.blocks]
+    text_idx = next(i for i, b in enumerate(result.blocks) if "OUTSIDETABLE" in (b.text or ""))
+    table_idx = next(i for i, b in enumerate(result.blocks) if b.type == BlockType.TABLE)
+    assert text_idx < table_idx, f"expected TEXT before TABLE, got {order}"
+
+
 def test_parse_docx_returns_ingested_document(sample_docx_path):
     result = ingest_document(sample_docx_path)
     assert isinstance(result, IngestedDocument)
@@ -130,6 +182,21 @@ def test_parse_docx_extracts_table_with_section(sample_docx_path):
 def test_parse_docx_missing_file_raises():
     with pytest.raises(FileNotFoundError):
         ingest_document("/tmp/does-not-exist-12345.docx")
+
+
+def test_parse_docx_warns_when_no_headings(tmp_path):
+    """A DOCX with content but no heading styles should flag that its blocks
+    have no section anchor (weaker Phase 5 citations), not fail silently."""
+    doc = DocxDocument()
+    doc.add_paragraph("Rated voltage is 12V.")  # plain body, no heading style
+    doc.add_paragraph("Overall length is 45mm.")
+    path = tmp_path / "no_headings.docx"
+    doc.save(str(path))
+
+    result = ingest_document(str(path))
+    assert result.blocks  # content was extracted
+    assert all(b.section is None for b in result.blocks)
+    assert any("no heading styles" in w for w in result.warnings)
 
 
 def test_unsupported_extension_raises():
