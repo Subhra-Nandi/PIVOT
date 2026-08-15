@@ -31,10 +31,20 @@ from pydantic import BaseModel, Field
 
 
 class SourceFormat(str, Enum):
-    """Original file format that produced this document."""
+    """Original file format that produced this document.
+
+    Documents (PDF/DOCX) and websites flow through `IngestedDocument` on their
+    way to Phase 3 LLM extraction. Spreadsheet catalogs (CSV/XLSX) do NOT — they
+    are already structured, so `ingest_catalog()` maps their columns straight to
+    `ProductRecord` with no LLM. CSV/XLSX still appear here so a record can name
+    its origin format uniformly.
+    """
 
     PDF = "pdf"
     DOCX = "docx"
+    CSV = "csv"
+    XLSX = "xlsx"
+    WEBSITE = "website"
 
 
 class BlockType(str, Enum):
@@ -72,6 +82,7 @@ class IngestedDocument(BaseModel):
 
     source_filename: str
     source_format: SourceFormat
+    source_url: Optional[str] = None  # set for web sources (WEBSITE); None for files
     page_count: Optional[int] = None  # None when the format has no pages (DOCX)
     blocks: list[ContentBlock] = Field(default_factory=list)
     raw_text: str = ""

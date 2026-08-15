@@ -17,6 +17,9 @@ build/
 *.log
 .DS_Store
 
+.cache/
+
 
 .context
 .claude
+.response

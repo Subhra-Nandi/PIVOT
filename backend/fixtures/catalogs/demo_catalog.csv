@@ -1,0 +1,51 @@
+Product Name,Brand,SKU,MPN,Category,Description,Rated Voltage,Current Rating,IP Rating,Operating Temperature,Thread Size,Tensile Strength,Material,Coating,Length,Weight,Price,Currency,Availability,Warehouse Bin
+Panel Mount Terminal Block v1,Phoenix Contact,PCX-001,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,3V,0.7A,IP65,-40C,,,,,,48.5g,67.55,USD,backorder,W9-21
+M6 Nylon Insert Lock Nut #2,Bolt Depot,BDM6-002,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M10,400MPa,steel,zinc plated,25mm,13.2g,7.58,USD,backorder,F4-93
+Panel Mount Terminal Block v3,Phoenix Contact,PCX-003,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,48V,4.5A,IP67,70C,,,,,,162.8g,5.5,USD,in_stock,W7-53
+1/4in Stainless Socket Cap Screw #4,McMaster-Carr,MCSC-004,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,1/4in,600MPa,stainless steel,zinc plated,20mm,20.2g,4.58,USD,in_stock,F5-15
+Panel Mount Terminal Block v5,Phoenix Contact,PCX-005,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,24V,5.6A,IP67,-20C,,,,,,112.6g,75.45,USD,backorder,W6-83
+M8 Hex Bolt Zinc Plated #6,Bolt Depot,BDM8-006,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M4,400MPa,carbon steel,zinc plated,30mm,49.3g,10.71,USD,in_stock,F7-45
+STEMMA QT Relay Module v7,Adafruit,ADA-007,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,12V,2.0A,IP65,-40C,,,,,,135.7g,64.6,USD,backorder,W2-87
+M6 Nylon Insert Lock Nut #8,Bolt Depot,BDM6-008,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M6,600MPa,steel,none,40mm,15.0g,11.58,USD,backorder,F9-38
+Panel Mount Terminal Block v9,Phoenix Contact,PCX-009,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,12V,8.5A,IP20,-40C,,,,,,165.3g,73.38,USD,in_stock,W5-18
+M8 Hex Bolt Zinc Plated #10,Bolt Depot,BDM8-010,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M12,800MPa,steel,zinc,40mm,21.0g,11.44,USD,in_stock,F3-43
+ACS37800 Power Meter Module v11,SparkFun,SPX-011,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,5V,7.6A,IP65,85C,,,,,,180.1g,38.9,USD,in_stock,W3-75
+1/4in Stainless Socket Cap Screw #12,McMaster-Carr,MCSC-012,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,1/4in,400MPa,steel,zinc plated,25mm,40.0g,5.36,USD,in_stock,F7-58
+Panel Mount Terminal Block v13,Phoenix Contact,PCX-013,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,24V,5.5A,IP20,-20C,,,,,,137.9g,50.59,USD,in_stock,W6-24
+1/4in Stainless Socket Cap Screw #14,McMaster-Carr,MCSC-014,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,3/8in,600MPa,stainless steel,zinc plated,30mm,48.7g,9.56,USD,backorder,F2-90
+STEMMA QT Relay Module v15,Adafruit,ADA-015,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,48V,6.3A,IP54,70C,,,,,,153.7g,50.8,USD,backorder,W1-86
+1/4in Stainless Socket Cap Screw #16,McMaster-Carr,MCSC-016,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,3/8in,400MPa,steel,none,30mm,13.5g,3.12,USD,backorder,F2-20
+Panel Mount Terminal Block v17,Phoenix Contact,PCX-017,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,24V,8.3A,IP54,-40C,,,,,,133.7g,85.43,USD,in_stock,W5-77
+M6 Nylon Insert Lock Nut #18,Bolt Depot,BDM6-018,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M10,600MPa,carbon steel,zinc,25mm,36.2g,5.08,USD,backorder,F6-66
+Panel Mount Terminal Block v19,Phoenix Contact,PCX-019,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,24V,1.6A,IP54,-20C,,,,,,70.9g,54.96,USD,in_stock,W4-10
+M8 Hex Bolt Zinc Plated #20,Bolt Depot,BDM8-020,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M4,600MPa,steel,zinc plated,30mm,5.4g,3.09,USD,backorder,F8-37
+Panel Mount Terminal Block v21,Phoenix Contact,PCX-021,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,5V,7.4A,IP67,-40C,,,,,,158.0g,73.59,USD,in_stock,W2-22
+M6 Nylon Insert Lock Nut #22,Bolt Depot,BDM6-022,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M10,800MPa,stainless steel,none,40mm,43.5g,0.82,USD,backorder,F2-17
+STEMMA QT Relay Module v23,Adafruit,ADA-023,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,12V,8.1A,IP20,-40C,,,,,,42.4g,50.53,USD,in_stock,W7-33
+1/4in Stainless Socket Cap Screw #24,McMaster-Carr,MCSC-024,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,3/8in,600MPa,steel,none,50mm,6.7g,8.2,USD,backorder,F1-21
+ACS37800 Power Meter Module v25,SparkFun,SPX-025,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,5V,4.4A,IP67,-40C,,,,,,173.6g,81.66,USD,in_stock,W7-10
+1/4in Stainless Socket Cap Screw #26,McMaster-Carr,MCSC-026,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,3/8in,1000MPa,stainless steel,none,50mm,33.8g,6.16,USD,in_stock,F5-37
+ACS37800 Power Meter Module v27,SparkFun,SPX-027,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,48V,7.5A,IP20,70C,,,,,,16.1g,54.61,USD,backorder,W9-30
+M8 Hex Bolt Zinc Plated #28,Bolt Depot,BDM8-028,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M12,400MPa,steel,zinc plated,50mm,5.3g,10.79,USD,in_stock,F2-82
+ACS37800 Power Meter Module v29,SparkFun,SPX-029,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,48V,6.1A,IP20,85C,,,,,,133.2g,52.99,USD,in_stock,W5-36
+M6 Nylon Insert Lock Nut #30,Bolt Depot,BDM6-030,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M8,600MPa,stainless steel,none,25mm,34.2g,3.85,USD,in_stock,F2-11
+STEMMA QT Relay Module v31,Adafruit,ADA-031,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,48V,10.0A,IP20,-20C,,,,,,109.8g,47.95,USD,in_stock,W6-18
+M8 Hex Bolt Zinc Plated #32,Bolt Depot,BDM8-032,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M8,800MPa,steel,none,50mm,35.8g,7.7,USD,backorder,F9-11
+Panel Mount Terminal Block v33,Phoenix Contact,PCX-033,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,48V,3.3A,IP20,-40C,,,,,,56.6g,80.58,USD,backorder,W9-29
+1/4in Stainless Socket Cap Screw #34,McMaster-Carr,MCSC-034,MC-SCS14,Fasteners,"Socket head cap screw, 18-8 stainless steel.",,,,,3/8in,600MPa,carbon steel,none,25mm,35.0g,10.68,USD,backorder,F8-42
+ACS37800 Power Meter Module v35,SparkFun,SPX-035,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,3V,6.5A,IP65,-20C,,,,,,5.7g,70.5,USD,backorder,W5-30
+M6 Nylon Insert Lock Nut #36,Bolt Depot,BDM6-036,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M10,1000MPa,carbon steel,zinc plated,20mm,5.6g,11.06,USD,in_stock,F9-14
+STEMMA QT Relay Module v37,Adafruit,ADA-037,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,48V,5.7A,IP67,-40C,,,,,,13.2g,35.95,USD,in_stock,W6-36
+M6 Nylon Insert Lock Nut #38,Bolt Depot,BDM6-038,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M6,400MPa,stainless steel,zinc,40mm,48.7g,9.41,USD,in_stock,F3-32
+STEMMA QT Relay Module v39,Adafruit,ADA-039,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,3V,2.2A,IP65,85C,,,,,,161.4g,78.4,USD,in_stock,W5-30
+M6 Nylon Insert Lock Nut #40,Bolt Depot,BDM6-040,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M4,1000MPa,steel,none,25mm,11.6g,11.49,USD,in_stock,F5-39
+ACS37800 Power Meter Module v41,SparkFun,SPX-041,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,3V,6.8A,IP67,70C,,,,,,59.3g,10.85,USD,in_stock,W6-92
+M6 Nylon Insert Lock Nut #42,Bolt Depot,BDM6-042,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M10,800MPa,steel,zinc plated,30mm,10.6g,12.04,USD,in_stock,F1-23
+Panel Mount Terminal Block v43,Phoenix Contact,PCX-043,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,24V,3.8A,IP65,85C,,,,,,123.2g,48.42,USD,in_stock,W4-42
+M8 Hex Bolt Zinc Plated #44,Bolt Depot,BDM8-044,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M10,400MPa,carbon steel,zinc,25mm,19.5g,1.01,USD,backorder,F6-89
+STEMMA QT Relay Module v45,Adafruit,ADA-045,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,3V,7.3A,IP65,70C,,,,,,135.0g,32.68,USD,backorder,W5-80
+M8 Hex Bolt Zinc Plated #46,Bolt Depot,BDM8-046,BD-M8HEX,Fasteners,"Grade 8.8 hex head bolt, zinc plated finish.",,,,,M6,1000MPa,carbon steel,none,25mm,31.5g,3.87,USD,backorder,F1-48
+STEMMA QT Relay Module v47,Adafruit,ADA-047,ADA2471,Electrical,Solid state relay breakout for switching AC/DC loads.,5V,4.6A,IP65,85C,,,,,,91.1g,62.38,USD,backorder,W8-31
+M6 Nylon Insert Lock Nut #48,Bolt Depot,BDM6-048,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M4,800MPa,carbon steel,zinc,50mm,18.1g,10.26,USD,in_stock,F5-38
+ACS37800 Power Meter Module v49,SparkFun,SPX-049,ACS37800,Electrical,Qwiic power monitoring breakout with current/voltage sensing.,5V,0.7A,IP54,85C,,,,,,124.2g,70.27,USD,in_stock,W7-90
+M6 Nylon Insert Lock Nut #50,Bolt Depot,BDM6-050,BD-M6NYL,Fasteners,"Nylon insert locknut, prevents vibration loosening.",,,,,M6,1000MPa,stainless steel,none,25mm,9.1g,8.64,USD,in_stock,F7-38

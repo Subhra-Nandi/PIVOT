@@ -9,13 +9,17 @@ product records — with every field traceable back to its source.
 
 ## Status
 
-**Phase 0 and Phase 1 complete.** The domain-agnostic product schema and the
-validation attribute dictionary are in place and tested (Phase 0). The
+**Phase 0, Phase 1, and Phase 2 complete.** The domain-agnostic product schema
+and the validation attribute dictionary are in place and tested (Phase 0). The
 document ingestion pipeline — PDF and DOCX parsing into a common structured
 intermediate format, with page/section references preserved for later
-citation — is also in place and tested (Phase 1). The FastAPI `/extract`
-endpoint, website ingestion, and the React demo UI arrive in later phases —
-see the [Roadmap](#roadmap).
+citation — is also in place and tested (Phase 1). Phase 2 adds three more
+ingestion paths: CSV/XLSX catalog batches mapped directly to product records
+(no LLM), single-product URL scraping (static fetch with a Firecrawl
+fallback for JS-heavy/bot-walled sites), and catalog-listing crawling that
+discovers product links and enriches them page by page. The FastAPI
+`/extract` endpoint, schema-guided LLM extraction, and the React demo UI
+arrive in later phases — see the [Roadmap](#roadmap).
 
 ## Prerequisites
 
@@ -45,8 +49,8 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-If you see `21 passed`, the schema layer and document ingestion pipeline are
-working and you're ready to build.
+If you see `48 passed`, the schema layer and all three ingestion paths
+(documents, catalogs, web) are working and you're ready to build.
 > **PowerShell blocks `Activate.ps1`?** Run once per terminal session: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` — or skip activation and call the venv Python directly: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Environment variables
@@ -65,6 +69,9 @@ Free keys come from:
 - **Gemini** — Google AI Studio (aistudio.google.com); use Flash / Flash-Lite, not Pro
 - **Groq** — console.groq.com
 - **GitHub Models** — a GitHub personal access token
+- **Firecrawl** — firecrawl.dev; only needed as a fallback for JS-heavy or
+  bot-walled product pages and for catalog-listing crawls. Single-page static
+  scraping and CSV/XLSX/PDF/DOCX ingestion work without it.
 
 You don't need any keys to run the current schema, ingestion pipeline, and tests.
 
@@ -75,17 +82,27 @@ PIVOT/
 ├── backend/
 │   ├── app/
 │   │   ├── schemas/
-│   │   │   ├── product.py      # ProductRecord — the single source of truth
-│   │   │   └── attributes.py   # attribute dictionary used for validation
+│   │   │   ├── product.py         # ProductRecord — the single source of truth
+│   │   │   └── attributes.py      # attribute dictionary used for validation
 │   │   └── ingestion/
-│   │       ├── models.py       # IngestedDocument / ContentBlock — intermediate format
-│   │       ├── pdf_parser.py   # PDF text + table extraction (pdfplumber)
-│   │       ├── docx_parser.py  # DOCX text + table extraction (python-docx)
-│   │       ├── base.py         # ingest_document() — single dispatch entrypoint
-│   │       └── utils.py        # shared parsing helpers
-│   ├── tests/                  # pytest suite guarding the schema + ingestion contracts
+│   │       ├── models.py          # IngestedDocument / ContentBlock — intermediate format
+│   │       ├── pdf_parser.py      # PDF text + table extraction (pdfplumber)
+│   │       ├── docx_parser.py     # DOCX text + table extraction (python-docx)
+│   │       ├── base.py            # ingest_document() — PDF/DOCX dispatch entrypoint
+│   │       ├── catalog.py         # ingest_catalog() — CSV/XLSX → ProductRecord, no LLM
+│   │       ├── web_fetcher.py     # fetch_html() — static fetch + Firecrawl fallback
+│   │       ├── web_parser.py      # parse_html() — JSON-LD/tables/text → IngestedDocument
+│   │       ├── url_ingest.py      # ingest_url() — single-product-URL entrypoint + cache
+│   │       ├── catalog_crawler.py # ingest_catalog_url() — listing discovery + enrichment
+│   │       └── utils.py           # shared parsing helpers
+│   ├── fixtures/
+│   │   ├── catalogs/              # committed demo_catalog.csv
+│   │   └── web/                   # committed raw HTML for the verified demo URLs
+│   ├── scripts/
+│   │   └── seed_web_cache.py      # pre-warms the web cache from fixtures before a demo
+│   ├── tests/                     # pytest suite guarding the schema + ingestion contracts
 │   └── requirements.txt
-├── .env.example                # copy to .env, add LLM keys
+├── .env.example                   # copy to .env, add LLM/Firecrawl keys
 └── README.md
 ```
 
@@ -93,25 +110,27 @@ PIVOT/
 validates against it, the LLM extraction layer targets its JSON Schema, and the
 validation/explainability layers populate its confidence and source fields.
 
-`ingestion/base.py`'s `ingest_document(path)` is the entrypoint later phases
-should import — it dispatches to the right parser by file extension and
-returns a normalized `IngestedDocument`, regardless of whether the source was
-a PDF or a DOCX.
+`ingestion/base.py`'s `ingest_document(path)` is the entrypoint for file-based
+sources — it dispatches to the right parser by file extension and returns a
+normalized `IngestedDocument`, regardless of whether the source was a PDF or
+a DOCX. `ingest_catalog(path)` is a separate entrypoint for CSV/XLSX: a
+spreadsheet is already structured, so it maps columns straight to
+`ProductRecord` with no LLM call, rather than going through
+`IngestedDocument`. `ingest_url(url)` and `ingest_catalog_url(url)` cover the
+two web paths — a single product page, or a listing page whose product links
+get discovered once and enriched page by page.
 
-> **Deferred - spreadsheet catalogs (to be added later).** `ingest_document`
-> currently handles **PDF and DOCX only**. Spreadsheet catalogs (XLSX / CSV) and
-> splitting one multi-product catalog into separate records are **not yet
-> supported** - intentionally left for a later pass, since there are no
-> spreadsheet sample sources in the repo yet and multi-product splitting may
-> belong in Phase 3 (extraction) rather than here. Adding a format is a clean
-> drop-in: a new `<format>_parser.py` plus one line in the `_PARSERS` dict in
-> `base.py` - nothing that already imports `ingest_document` needs to change.
+> **Known gap — web ingestion produces `IngestedDocument`, not `ProductRecord`
+> yet.** `ingest_catalog_url()`'s `CatalogResult.enriched` is currently
+> `list[IngestedDocument]`. Turning a scraped page into a `ProductRecord`
+> needs schema-guided LLM extraction, which is Phase 3 — not built yet. The
+> type will change to `list[ProductRecord]` once Phase 3 ships.
 
 ## Roadmap
 
 - [x] **Phase 0** — Schema & stack
-- [x] **Phase 1** — Document ingestion (PDF / DOCX) — spreadsheet catalogs (XLSX / CSV) deferred, see note above
-- [ ] **Phase 2** — Website ingestion (MCP-based)
+- [x] **Phase 1** — Document ingestion (PDF / DOCX)
+- [x] **Phase 2** — CSV/XLSX catalog batch, single-product URL scrape, catalog-listing crawl
 - [ ] **Phase 3** — Schema-guided LLM extraction
 - [ ] **Phase 4** — Validation layer (per-field confidence, conflict detection)
 - [ ] **Phase 5** — Explainability (source citations, extracted/inferred/needs-review)
