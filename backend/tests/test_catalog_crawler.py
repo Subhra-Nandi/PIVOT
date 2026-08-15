@@ -15,6 +15,7 @@ from app.ingestion import catalog_crawler, url_ingest
 from app.ingestion.catalog_crawler import CatalogResult, discover_product_links, ingest_catalog_url
 from app.ingestion.models import IngestedDocument, SourceFormat
 from app.ingestion.web_fetcher import FetchError
+from app.schemas.product import ProductRecord
 
 # Mirrors the real crawl_url("https://boltdepot.com/Hex_bolts", ...) response
 # shape confirmed live: a list of scraped pages, each with sourceURL metadata
@@ -54,6 +55,19 @@ _FAKE_CRAWL_RESULT = {
 @pytest.fixture(autouse=True)
 def _firecrawl_key(monkeypatch):
     monkeypatch.setenv("FIRECRAWL_API_KEY", "fc-test-key")
+
+
+@pytest.fixture(autouse=True)
+def _stub_extraction(monkeypatch):
+    """Phase 3's extract_product is out of scope for these tests — stub it to
+    a trivial ProductRecord built from the IngestedDocument's URL so the
+    catalog-crawl suite exercises discovery/pagination/caching without making
+    any real LLM calls."""
+
+    def fake_extract_product(doc, client=None):
+        return ProductRecord(product_name=doc.source_url or doc.source_filename)
+
+    monkeypatch.setattr(catalog_crawler, "extract_product", fake_extract_product)
 
 
 @pytest.fixture()

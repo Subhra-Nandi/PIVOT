@@ -40,9 +40,10 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
-from app.ingestion.models import IngestedDocument
+from app.extraction.extractor import extract_product
 from app.ingestion.url_ingest import ingest_url
 from app.ingestion.web_fetcher import FetchError
+from app.schemas.product import ProductRecord
 
 _DEFAULT_PRODUCT_URL_PATTERN = r"/Product-Details"  # Bolt Depot — the verified catalog-crawl demo source
 _DEFAULT_MAX_PAGES = 20  # crawl pages, roughly 1 Firecrawl credit each
@@ -55,16 +56,13 @@ class CatalogResult(BaseModel):
     """Output of `ingest_catalog_url()` — one page of enriched products plus
     a cursor so the caller's "load more" doesn't re-crawl.
 
-    `enriched` holds `IngestedDocument`, not `ProductRecord` — Phase 3 (LLM
-    extraction) doesn't exist in this codebase yet, so there is nothing that
-    turns a scraped product page into a `ProductRecord`. This is a real,
-    intentional deviation from the Phase 2 plan's `list[ProductRecord]`, not
-    an oversight: the type will change to `ProductRecord` once Phase 3 ships.
+    `enriched` holds `ProductRecord` — each discovered product page is parsed
+    via `ingest_url()` then run through Phase 3's `extract_product()`.
     """
 
     catalog_url: str
     total_discovered: int
-    enriched: list[IngestedDocument] = Field(default_factory=list)
+    enriched: list[ProductRecord] = Field(default_factory=list)
     failed_urls: list[str] = Field(default_factory=list)
     offset: int = 0
     has_more: bool = False
@@ -152,9 +150,10 @@ def ingest_catalog_url(
     """Discover product links from a catalog listing (once, cached), then
     enrich the `limit` links starting at `offset` via `ingest_url()`.
 
-    A link that fails to ingest (dead link, parse error) is recorded in
-    `failed_urls` rather than aborting the whole batch — one bad product page
-    shouldn't block the rest of a "load more" page.
+    A link that fails to ingest or extract (dead link, parse error, LLM
+    failure) is recorded in `failed_urls` rather than aborting the whole
+    batch — one bad product page shouldn't block the rest of a "load more"
+    page.
     """
     links = _load_cached_links(catalog_url)
     if links is None:
@@ -162,12 +161,13 @@ def ingest_catalog_url(
         _save_cached_links(catalog_url, links)
 
     page_links = links[offset : offset + limit]
-    enriched: list[IngestedDocument] = []
+    enriched: list[ProductRecord] = []
     failed_urls: list[str] = []
     for link in page_links:
         try:
-            enriched.append(ingest_url(link))
-        except (FetchError, ValueError):
+            doc = ingest_url(link)
+            enriched.append(extract_product(doc))
+        except Exception:  # dead link, parse error, or LLM/extraction failure — one bad page shouldn't sink the batch
             failed_urls.append(link)
 
     return CatalogResult(
