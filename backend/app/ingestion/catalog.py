@@ -42,6 +42,7 @@ from app.schemas.product import (
     Specification,
     SpecStatus,
 )
+from app.validation import validate_record
 
 # Header (lower-cased, spaces/underscores folded to one form) -> ProductRecord
 # top-level field. Checked before `resolve_attribute()`, so a header like
@@ -264,7 +265,7 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
         # matching how a user reading the spreadsheet in a viewer would count.
         record = _row_to_record(row, i + 1, core_map, spec_map, source_id, filename, row_warnings)
         if record is not None:
-            records.append(record)
+            records.append(validate_record(record))
 
     return CatalogIngestResult(
         source_filename=filename,

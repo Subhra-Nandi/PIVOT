@@ -49,6 +49,7 @@ class AttributeSpec(BaseModel):
     allowed_units: list[str] = Field(default_factory=list)
     min_value: Optional[float] = None  # NUMERIC_RANGE
     max_value: Optional[float] = None  # NUMERIC_RANGE
+    min_exclusive: bool = False  # NUMERIC_RANGE — True means value must be > min_value, not >=
     pattern: Optional[str] = None  # PATTERN (regex)
     enum_values: list[str] = Field(default_factory=list)  # ENUM
     aliases: list[str] = Field(default_factory=list)
@@ -162,7 +163,8 @@ _ATTRIBUTES: list[AttributeSpec] = [
         check=CheckType.NUMERIC_RANGE,
         unit_hint="mm or in",
         allowed_units=["mm", "cm", "m", "in", "ft"],
-        min_value=0,  # strictly > 0 enforced by validator (min is exclusive floor)
+        min_value=0,
+        min_exclusive=True,  # 0 itself is not a valid length
         max_value=None,
         aliases=["overall length", "len", "size length"],
         notes="Universal; always expected. Value must be > 0.",
@@ -173,7 +175,8 @@ _ATTRIBUTES: list[AttributeSpec] = [
         check=CheckType.NUMERIC_RANGE,
         unit_hint="g or kg",
         allowed_units=["g", "kg", "mg", "lb", "oz"],
-        min_value=0,  # > 0 enforced by validator
+        min_value=0,
+        min_exclusive=True,  # 0 itself is not a valid weight
         max_value=None,
         aliases=["mass", "net weight", "unit weight"],
         notes="Universal; always expected. Value must be > 0.",

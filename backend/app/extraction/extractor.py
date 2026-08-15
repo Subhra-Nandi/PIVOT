@@ -19,6 +19,7 @@ from app.llm import get_default_client
 from app.llm.base import LLMClient
 from app.schemas.attributes import resolve_attribute
 from app.schemas.product import ProductRecord, Source, SourceType
+from app.validation import validate_record
 
 _CODE_FENCE_PATTERN = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
@@ -89,4 +90,5 @@ def extract_product(doc: IngestedDocument, client: LLMClient | None = None) -> P
 
     _normalize_attributes(record)
     _fill_provenance(record, doc)
+    validate_record(record, blocks=doc.blocks)
     return record

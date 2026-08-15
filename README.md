@@ -9,21 +9,25 @@ product records — with every field traceable back to its source.
 
 ## Status
 
-**Phase 0, Phase 1, Phase 2, and Phase 3 complete.** The domain-agnostic
-product schema and the validation attribute dictionary are in place and
-tested (Phase 0). The document ingestion pipeline — PDF and DOCX parsing into
-a common structured intermediate format, with page/section references
-preserved for later citation — is also in place and tested (Phase 1).
-Phase 2 adds three more ingestion paths: CSV/XLSX catalog batches mapped
-directly to product records (no LLM), single-product URL scraping (static
-fetch with a Firecrawl fallback for JS-heavy/bot-walled sites), and
-catalog-listing crawling that discovers product links and enriches them page
-by page. Phase 3 closes the loop for the two source types that need an LLM
-(documents and web pages): schema-guided extraction turns an `IngestedDocument`
-into a real `ProductRecord`, via a swappable Gemini → Groq → GitHub Models
-fallback chain, live-verified against a real Gemini call. The FastAPI
-`/extract` endpoint and the React demo UI arrive in later phases — see the
-[Roadmap](#roadmap).
+**Phase 0 through Phase 4 complete.** The domain-agnostic product schema and
+the validation attribute dictionary are in place and tested (Phase 0). The
+document ingestion pipeline — PDF and DOCX parsing into a common structured
+intermediate format, with page/section references preserved for later
+citation — is also in place and tested (Phase 1). Phase 2 adds three more
+ingestion paths: CSV/XLSX catalog batches mapped directly to product records
+(no LLM), single-product URL scraping (static fetch with a Firecrawl
+fallback for JS-heavy/bot-walled sites), and catalog-listing crawling that
+discovers product links and enriches them page by page. Phase 3 closes the
+loop for the two source types that need an LLM (documents and web pages):
+schema-guided extraction turns an `IngestedDocument` into a real
+`ProductRecord`, via a swappable Gemini → Groq → GitHub Models fallback
+chain, live-verified against a real Gemini call. Phase 4 adds the validation
+layer: every specification is checked against the attribute dictionary
+(range/pattern/enum), cross-checked for groundedness against its cited
+source when one is available, and given a real confidence score instead of a
+flat placeholder — rolled up into a per-record `overall_confidence`. The
+FastAPI `/extract` endpoint and the React demo UI arrive in later phases —
+see the [Roadmap](#roadmap).
 
 ## Prerequisites
 
@@ -53,10 +57,11 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-If you see `70 passed`, the schema layer, all three ingestion paths
-(documents, catalogs, web), and LLM extraction are working and you're ready
-to build. The suite makes zero real network/LLM calls — every provider SDK
-call is mocked, same as the Firecrawl mocking from Phase 2.
+If you see `99 passed`, the schema layer, all three ingestion paths
+(documents, catalogs, web), LLM extraction, and rule-based validation are all
+working and you're ready to build. The suite makes zero real network/LLM
+calls — every provider SDK call is mocked, same as the Firecrawl mocking
+from Phase 2.
 > **PowerShell blocks `Activate.ps1`?** Run once per terminal session: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` — or skip activation and call the venv Python directly: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Environment variables
@@ -118,9 +123,14 @@ PIVOT/
 │   │   │   ├── groq_client.py      # GroqClient — fallback
 │   │   │   ├── github_client.py    # GitHubModelsClient — tertiary fallback
 │   │   │   └── fallback.py         # FallbackLLMClient — tries each in order
-│   │   └── extraction/
-│   │       ├── prompt.py           # build_extraction_prompt() — schema-guided prompt
-│   │       └── extractor.py        # extract_product() — IngestedDocument → ProductRecord
+│   │   ├── extraction/
+│   │   │   ├── prompt.py           # build_extraction_prompt() — schema-guided prompt
+│   │   │   └── extractor.py        # extract_product() — IngestedDocument → ProductRecord
+│   │   └── validation/
+│   │       ├── units.py            # convert_to_base() — fixed SI-prefix/imperial conversions
+│   │       ├── checks.py           # run_attribute_check() — NUMERIC_RANGE/PATTERN/ENUM dispatch
+│   │       ├── groundedness.py     # check_groundedness() — value vs. cited source block
+│   │       └── validator.py        # validate_record() — confidence scoring + overall rollup
 │   ├── fixtures/
 │   │   ├── catalogs/               # committed demo_catalog.csv
 │   │   └── web/                    # committed raw HTML for the verified demo URLs
@@ -162,19 +172,35 @@ GitHub Models), and a `FallbackLLMClient` that tries them in order so a
 rate limit on one provider doesn't require touching extraction code —
 just add the next provider's key.
 
+`validation/validator.py`'s `validate_record(record, blocks=None)` is called
+by both producers of a `ProductRecord` — `ingest_catalog()` and
+`extract_product()` — right before they return. It runs every spec through
+`checks.py`'s attribute-dictionary rule (range/pattern/enum, using
+`units.py` for unit conversion first), and, when source `blocks` are
+available (LLM-sourced records only — a CSV cell has nothing further to
+check), `groundedness.py`'s word-overlap check that the value is actually
+present in the source block it cites. The result replaces the placeholder
+confidence written upstream and can demote a spec's status to
+`needs_review`; `Validation.overall_confidence` is the mean of all spec
+confidences on the record. `Validation.conflicts` (cross-source
+disagreement) is intentionally left unpopulated for now — every current
+pipeline path produces one record from one source, so there's nothing to
+conflict-check yet; it's deferred until a real multi-source case exists.
+
 ## Roadmap
 
 - [x] **Phase 0** — Schema & stack
 - [x] **Phase 1** — Document ingestion (PDF / DOCX)
 - [x] **Phase 2** — CSV/XLSX catalog batch, single-product URL scrape, catalog-listing crawl
 - [x] **Phase 3** — Schema-guided LLM extraction (Gemini → Groq → GitHub Models)
-- [ ] **Phase 4** — Validation layer (per-field confidence, conflict detection)
+- [x] **Phase 4** — Validation layer (attribute-dictionary rules, groundedness, per-field confidence)
 - [ ] **Phase 5** — Explainability (source citations, extracted/inferred/needs-review)
 - [ ] **Phase 6** — Commerce schema mapping (Schema.org / Google Shopping / GS1)
 - [ ] **Phase 7** — Demo UI (React)
 - [ ] **Phase 8** — Testing & pitch prep
 
 The core differentiator is the validation + explainability work in Phases 4–5:
-every extracted field carries a confidence score and a citation back to its
-source, so the pipeline is trustworthy, not a black box.
+every extracted field carries a real, rule-earned confidence score (Phase 4,
+done) and will carry a citation back to its source (Phase 5, next), so the
+pipeline is trustworthy, not a black box.
 
