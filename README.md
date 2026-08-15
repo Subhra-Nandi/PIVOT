@@ -5,15 +5,17 @@
 AI-powered product intelligence for industrial commerce: turn scattered product
 data (PDFs, catalogs, websites) into structured, validated, commerce-ready
 product records — with every field traceable back to its source.
-
 > Team project — Hack2Skill
 
 ## Status
 
-**Phase 0 complete.** The domain-agnostic product schema and the validation
-attribute dictionary are in place and tested. The FastAPI `/extract` endpoint,
-the ingestion pipelines, and the React demo UI arrive in later phases — see the
-[Roadmap](#roadmap). Right now the repo is the schema layer plus its test suite.
+**Phase 0 and Phase 1 complete.** The domain-agnostic product schema and the
+validation attribute dictionary are in place and tested (Phase 0). The
+document ingestion pipeline — PDF and DOCX parsing into a common structured
+intermediate format, with page/section references preserved for later
+citation — is also in place and tested (Phase 1). The FastAPI `/extract`
+endpoint, website ingestion, and the React demo UI arrive in later phases —
+see the [Roadmap](#roadmap).
 
 ## Prerequisites
 
@@ -25,7 +27,7 @@ the ingestion pipelines, and the React demo UI arrive in later phases — see th
 
 All backend work happens in `backend/`.
 
-```bash
+```
 cd backend
 
 # 1. Create an isolated environment
@@ -43,19 +45,16 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-If you see `7 passed`, the schema layer is working and you're ready to build.
-
-> **PowerShell blocks `Activate.ps1`?** Run once per terminal session:
-> `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
-> — or skip activation and call the venv Python directly:
-> `.venv\Scripts\python.exe -m pytest -q`
+If you see `18 passed`, the schema layer and document ingestion pipeline are
+working and you're ready to build.
+> **PowerShell blocks `Activate.ps1`?** Run once per terminal session: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` — or skip activation and call the venv Python directly: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Environment variables
 
 The LLM extraction layer (Phase 3) uses free-tier providers behind one swappable
 interface: **Gemini** (primary) → **Groq** (fallback) → **GitHub Models** (tertiary).
 
-```bash
+```
 # from the repo root
 cp .env.example .env        # Windows: copy .env.example .env
 ```
@@ -67,7 +66,7 @@ Free keys come from:
 - **Groq** — console.groq.com
 - **GitHub Models** — a GitHub personal access token
 
-You don't need any keys to run the current schema and tests.
+You don't need any keys to run the current schema, ingestion pipeline, and tests.
 
 ## Project structure
 
@@ -75,10 +74,16 @@ You don't need any keys to run the current schema and tests.
 PIVOT/
 ├── backend/
 │   ├── app/
-│   │   └── schemas/
-│   │       ├── product.py      # ProductRecord — the single source of truth
-│   │       └── attributes.py   # attribute dictionary used for validation
-│   ├── tests/                  # pytest suite guarding the schema contract
+│   │   ├── schemas/
+│   │   │   ├── product.py      # ProductRecord — the single source of truth
+│   │   │   └── attributes.py   # attribute dictionary used for validation
+│   │   └── ingestion/
+│   │       ├── models.py       # IngestedDocument / ContentBlock — intermediate format
+│   │       ├── pdf_parser.py   # PDF text + table extraction (pdfplumber)
+│   │       ├── docx_parser.py  # DOCX text + table extraction (python-docx)
+│   │       ├── base.py         # ingest_document() — single dispatch entrypoint
+│   │       └── utils.py        # shared parsing helpers
+│   ├── tests/                  # pytest suite guarding the schema + ingestion contracts
 │   └── requirements.txt
 ├── .env.example                # copy to .env, add LLM keys
 └── README.md
@@ -88,10 +93,15 @@ PIVOT/
 validates against it, the LLM extraction layer targets its JSON Schema, and the
 validation/explainability layers populate its confidence and source fields.
 
+`ingestion/base.py`'s `ingest_document(path)` is the entrypoint later phases
+should import — it dispatches to the right parser by file extension and
+returns a normalized `IngestedDocument`, regardless of whether the source was
+a PDF or a DOCX.
+
 ## Roadmap
 
 - [x] **Phase 0** — Schema & stack
-- [ ] **Phase 1** — Document ingestion (PDF / DOCX / catalogs)
+- [x] **Phase 1** — Document ingestion (PDF / DOCX / catalogs)
 - [ ] **Phase 2** — Website ingestion (MCP-based)
 - [ ] **Phase 3** — Schema-guided LLM extraction
 - [ ] **Phase 4** — Validation layer (per-field confidence, conflict detection)
@@ -103,3 +113,4 @@ validation/explainability layers populate its confidence and source fields.
 The core differentiator is the validation + explainability work in Phases 4–5:
 every extracted field carries a confidence score and a citation back to its
 source, so the pipeline is trustworthy, not a black box.
+
