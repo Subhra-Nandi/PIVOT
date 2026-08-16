@@ -9,7 +9,7 @@ product records — with every field traceable back to its source.
 
 ## Status
 
-**Phase 0 through Phase 4 complete.** The domain-agnostic product schema and
+**Phase 0 through Phase 5 complete.** The domain-agnostic product schema and
 the validation attribute dictionary are in place and tested (Phase 0). The
 document ingestion pipeline — PDF and DOCX parsing into a common structured
 intermediate format, with page/section references preserved for later
@@ -21,13 +21,18 @@ discovers product links and enriches them page by page. Phase 3 closes the
 loop for the two source types that need an LLM (documents and web pages):
 schema-guided extraction turns an `IngestedDocument` into a real
 `ProductRecord`, via a swappable Gemini → Groq → GitHub Models fallback
-chain, live-verified against a real Gemini call. Phase 4 adds the validation
-layer: every specification is checked against the attribute dictionary
-(range/pattern/enum), cross-checked for groundedness against its cited
-source when one is available, and given a real confidence score instead of a
-flat placeholder — rolled up into a per-record `overall_confidence`. The
-FastAPI `/extract` endpoint and the React demo UI arrive in later phases —
-see the [Roadmap](#roadmap).
+chain. Phase 4 adds the validation layer: every specification is checked
+against the attribute dictionary (range/pattern/enum), cross-checked for
+groundedness against its cited source when one is available, and given a
+real confidence score instead of a flat placeholder — rolled up into a
+per-record `overall_confidence`. Phase 5 closes the explainability loop:
+every LLM-extracted field's citation is resolved from a raw block reference
+into a real `Source` entry with page/section and a snippet pulled from the
+actual source text (not just whatever the model claimed), and records from
+multiple sources for the same product can now be merged, with disagreeing
+attributes flagged `needs_review` and recorded as a `Conflict` instead of
+silently picked. The FastAPI `/extract` endpoint and the React demo UI
+arrive in later phases — see the [Roadmap](#roadmap).
 
 ## Prerequisites
 
@@ -57,11 +62,11 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-If you see `99 passed`, the schema layer, all three ingestion paths
-(documents, catalogs, web), LLM extraction, and rule-based validation are all
-working and you're ready to build. The suite makes zero real network/LLM
-calls — every provider SDK call is mocked, same as the Firecrawl mocking
-from Phase 2.
+If you see `114 passed`, the schema layer, all three ingestion paths
+(documents, catalogs, web), LLM extraction, rule-based validation, and the
+explainability layer are all working and you're ready to build. The suite
+makes zero real network/LLM calls — every provider SDK call is mocked, same
+as the Firecrawl mocking from Phase 2.
 > **PowerShell blocks `Activate.ps1`?** Run once per terminal session: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` — or skip activation and call the venv Python directly: `.venv\Scripts\python.exe -m pytest -q`
 
 ## Environment variables
@@ -126,11 +131,15 @@ PIVOT/
 │   │   ├── extraction/
 │   │   │   ├── prompt.py           # build_extraction_prompt() — schema-guided prompt
 │   │   │   └── extractor.py        # extract_product() — IngestedDocument → ProductRecord
-│   │   └── validation/
-│   │       ├── units.py            # convert_to_base() — fixed SI-prefix/imperial conversions
-│   │       ├── checks.py           # run_attribute_check() — NUMERIC_RANGE/PATTERN/ENUM dispatch
-│   │       ├── groundedness.py     # check_groundedness() — value vs. cited source block
-│   │       └── validator.py        # validate_record() — confidence scoring + overall rollup
+│   │   ├── validation/
+│   │   │   ├── units.py            # convert_to_base() — fixed SI-prefix/imperial conversions
+│   │   │   ├── checks.py           # run_attribute_check() — NUMERIC_RANGE/PATTERN/ENUM dispatch
+│   │   │   ├── groundedness.py     # check_groundedness() — value vs. cited source block
+│   │   │   └── validator.py        # validate_record() — confidence scoring + overall rollup
+│   │   └── explainability/
+│   │       ├── snippets.py         # make_snippet() — real source text, not the LLM's own claim
+│   │       ├── citations.py        # resolve_citations() — block_id → real Source.id + snippet
+│   │       └── merge.py            # merge_records() — multi-source merge + conflict detection
 │   ├── fixtures/
 │   │   ├── catalogs/               # committed demo_catalog.csv
 │   │   └── web/                    # committed raw HTML for the verified demo URLs
@@ -162,7 +171,7 @@ it builds a schema-guided prompt (`extraction/prompt.py`) that includes the
 full `ProductRecord` JSON schema plus every content block tagged with its
 `block_id`/`page`/`section`, calls the LLM, validates the JSON response, and
 retries once on failure before raising. `ingest_catalog_url()`'s
-`CatalogResult.enriched` now returns `list[ProductRecord]` — each discovered
+`CatalogResult.enriched` returns `list[ProductRecord]` — each discovered
 product page is scraped via `ingest_url()` and then run through
 `extract_product()`.
 
@@ -182,10 +191,25 @@ check), `groundedness.py`'s word-overlap check that the value is actually
 present in the source block it cites. The result replaces the placeholder
 confidence written upstream and can demote a spec's status to
 `needs_review`; `Validation.overall_confidence` is the mean of all spec
-confidences on the record. `Validation.conflicts` (cross-source
-disagreement) is intentionally left unpopulated for now — every current
-pipeline path produces one record from one source, so there's nothing to
-conflict-check yet; it's deferred until a real multi-source case exists.
+confidences on the record.
+
+`explainability/citations.py`'s `resolve_citations(record, doc)` closes a
+gap Phase 3 left open: the LLM cites the raw `block_id` it pulled a value
+from (e.g. `"b0007"`), but nothing turned that into a real `Source` entry —
+`Provenance.sources_used` held only one generic placeholder that didn't
+match any spec's citation. `resolve_citations()` mints one real `Source` per
+distinct cited block (with its actual page and a snippet pulled from the
+real source text, not the model's own claim) and rewrites every spec's
+reference to point at it. It runs as the last step inside `extract_product()`
+— after `validate_record()`, since Phase 4's groundedness check depends on
+the citation still being the raw block_id at that point. Catalog-sourced
+records are already correctly cited at creation time, so calling it there is
+always a safe no-op. `explainability/merge.py`'s `merge_records(records)`
+is the piece that finally populates `Validation.conflicts` — deferred by
+Phase 4 since every pipeline path produced one record from one source until
+now: pass records for the same product from multiple sources (a spec-sheet
+PDF, a scraped listing page) and any attribute they disagree on gets flagged
+`needs_review` on every contributing spec and recorded as a `Conflict`.
 
 ## Roadmap
 
@@ -194,13 +218,14 @@ conflict-check yet; it's deferred until a real multi-source case exists.
 - [x] **Phase 2** — CSV/XLSX catalog batch, single-product URL scrape, catalog-listing crawl
 - [x] **Phase 3** — Schema-guided LLM extraction (Gemini → Groq → GitHub Models)
 - [x] **Phase 4** — Validation layer (attribute-dictionary rules, groundedness, per-field confidence)
-- [ ] **Phase 5** — Explainability (source citations, extracted/inferred/needs-review)
+- [x] **Phase 5** — Explainability (citation resolution, multi-source merge + conflict detection)
 - [ ] **Phase 6** — Commerce schema mapping (Schema.org / Google Shopping / GS1)
 - [ ] **Phase 7** — Demo UI (React)
 - [ ] **Phase 8** — Testing & pitch prep
 
-The core differentiator is the validation + explainability work in Phases 4–5:
-every extracted field carries a real, rule-earned confidence score (Phase 4,
-done) and will carry a citation back to its source (Phase 5, next), so the
-pipeline is trustworthy, not a black box.
-
+The core differentiator — validation + explainability — is now done: every
+extracted field carries a real, rule-earned confidence score (Phase 4) and a
+citation that resolves to an actual source with page/section/snippet, not
+just a claim (Phase 5). Multi-source disagreement is surfaced, not silently
+resolved. What's left is turning this trustworthy internal record into a
+recognized commerce format (Phase 6) and a demo judges can see live (Phase 7).
