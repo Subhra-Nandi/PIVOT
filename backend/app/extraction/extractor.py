@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 
 from pydantic import ValidationError
 
+from app.explainability import resolve_citations
 from app.extraction.prompt import build_extraction_prompt
 from app.ingestion.models import IngestedDocument
 from app.llm import get_default_client
@@ -91,4 +92,5 @@ def extract_product(doc: IngestedDocument, client: LLMClient | None = None) -> P
     _normalize_attributes(record)
     _fill_provenance(record, doc)
     validate_record(record, blocks=doc.blocks)
+    resolve_citations(record, doc)
     return record
