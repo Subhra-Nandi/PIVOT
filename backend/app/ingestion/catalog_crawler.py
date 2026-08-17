@@ -40,7 +40,6 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
-from app.extraction.extractor import extract_product
 from app.ingestion.url_ingest import ingest_url
 from app.ingestion.web_fetcher import FetchError
 from app.schemas.product import ProductRecord
@@ -50,6 +49,25 @@ _DEFAULT_MAX_PAGES = 20  # crawl pages, roughly 1 Firecrawl credit each
 _DEFAULT_ENRICH_LIMIT = 10
 
 _LINKS_CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", ".cache", "catalog_links")
+
+# `extract_product` is bound lazily (see `_resolve_extract_product()`), not
+# imported at module load time. A top-level `from app.extraction.extractor
+# import extract_product` here closes a cycle: app.extraction ->
+# app.explainability -> app.ingestion.models -> (runs this package's
+# __init__.py) -> this module -> app.extraction, while app.extraction is
+# still mid-initialization. Kept as a module attribute (rather than a purely
+# local import) so `test_catalog_crawler.py`'s
+# `monkeypatch.setattr(catalog_crawler, "extract_product", ...)` still works.
+extract_product = None
+
+
+def _resolve_extract_product():
+    global extract_product
+    if extract_product is None:
+        from app.extraction.extractor import extract_product as _extract_product
+
+        extract_product = _extract_product
+    return extract_product
 
 
 class CatalogResult(BaseModel):
@@ -155,6 +173,8 @@ def ingest_catalog_url(
     batch — one bad product page shouldn't block the rest of a "load more"
     page.
     """
+    extract = _resolve_extract_product()
+
     links = _load_cached_links(catalog_url)
     if links is None:
         links = discover_product_links(catalog_url)
@@ -166,7 +186,7 @@ def ingest_catalog_url(
     for link in page_links:
         try:
             doc = ingest_url(link)
-            enriched.append(extract_product(doc))
+            enriched.append(extract(doc))
         except Exception:  # dead link, parse error, or LLM/extraction failure — one bad page shouldn't sink the batch
             failed_urls.append(link)
 
