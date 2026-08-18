@@ -42,7 +42,7 @@ from app.schemas.product import (
     Specification,
     SpecStatus,
 )
-from app.validation import validate_record
+
 
 # Header (lower-cased, spaces/underscores folded to one form) -> ProductRecord
 # top-level field. Checked before `resolve_attribute()`, so a header like
@@ -256,6 +256,14 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
         mapped_spec=spec_map,
         unmapped=unmapped,
     )
+
+    # Imported here, not at module top level: app.validation's package init
+    # (validation/groundedness.py) imports app.ingestion.models, which runs
+    # this package's own __init__.py -> back to this module -> app.validation
+    # while it's still mid-initialization. Deferring to call time breaks
+    # that cycle. (Same root cause and fix as catalog_crawler.py's
+    # extract_product import.)
+    from app.validation import validate_record
 
     source_id = "src-1"
     records: list[ProductRecord] = []
