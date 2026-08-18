@@ -15,6 +15,8 @@ one.
 
 from __future__ import annotations
 
+import itertools
+
 from app.schemas.product import Conflict, ProductRecord, Specification, SpecStatus
 
 
@@ -29,22 +31,43 @@ def merge_records(records: list[ProductRecord]) -> ProductRecord:
     spec and recorded in `Validation.conflicts`. `overall_confidence` is
     recomputed as the mean across the merged specification set.
 
+    Does not mutate its inputs — each record is deep-copied before any
+    remapping, so callers can keep using their original `ProductRecord`
+    objects unmodified after merging.
+
     Raises ValueError if `records` is empty.
     """
     if not records:
         raise ValueError("merge_records() requires at least one record")
 
+    records = [r.model_copy(deep=True) for r in records]
     base = records[0]
 
     all_sources = []
-    seen_source_ids: set[str] = set()
-    for record in records:
-        for source in record.provenance.sources_used:
-            if source.id not in seen_source_ids:
-                all_sources.append(source)
-                seen_source_ids.add(source.id)
+    all_specs: list[Specification] = []
+    next_id = itertools.count(1)
 
-    all_specs: list[Specification] = [spec for record in records for spec in record.specifications]
+    for record in records:
+        # Each record's Source.id values were minted independently by
+        # whichever pipeline produced it, so different records commonly
+        # reuse the same local id ("src-1") for genuinely different
+        # sources — every pipeline path starts numbering from 1. Remap
+        # every source to a fresh, globally-unique id before pooling, and
+        # rewrite each spec's citation to match — merging by raw id would
+        # silently collide and drop one source's citations (confirmed: a
+        # record citing "src-1" from a PDF and another citing "src-1" from
+        # a website merge into a single source, losing the website one).
+        id_map: dict[str, str] = {}
+        for source in record.provenance.sources_used:
+            new_id = f"src-{next(next_id)}"
+            id_map[source.id] = new_id
+            source.id = new_id
+            all_sources.append(source)
+
+        for spec in record.specifications:
+            if spec.source is not None and spec.source.reference in id_map:
+                spec.source.reference = id_map[spec.source.reference]
+            all_specs.append(spec)
 
     by_attribute: dict[str, list[Specification]] = {}
     for spec in all_specs:

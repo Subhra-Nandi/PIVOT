@@ -259,6 +259,34 @@ def test_merge_empty_list_raises():
         merge_records([])
 
 
+def test_merge_does_not_drop_sources_with_colliding_local_ids():
+    """Regression test: every pipeline path (ingest_catalog, resolve_citations)
+    numbers a record's own Source.ids starting from "src-1", so two records
+    reusing the same local id is the normal case, not an edge case. Merging
+    must not silently drop one source just because two records happened to
+    number their sources the same way."""
+    a = _record_with_spec("Widget", "voltage_rating", "12V", "src-1", "sheet.pdf")
+    b = _record_with_spec("Widget", "current_rating", "2A", "src-1", "listing.html")
+
+    merged = merge_records([a, b])
+
+    assert len(merged.provenance.sources_used) == 2
+    references = {s.reference for s in merged.provenance.sources_used}
+    assert references == {"sheet.pdf", "listing.html"}
+    resolved_ids = {s.id for s in merged.provenance.sources_used}
+    assert all(spec.source.reference in resolved_ids for spec in merged.specifications)
+
+
+def test_merge_does_not_mutate_input_records():
+    a = _record_with_spec("Widget", "voltage_rating", "12V", "src-1", "sheet.pdf")
+    b = _record_with_spec("Widget", "voltage_rating", "24V", "src-1", "listing.html")
+
+    merge_records([a, b])
+
+    assert a.provenance.sources_used[0].id == "src-1"
+    assert a.specifications[0].status == SpecStatus.EXTRACTED
+
+
 class _StubClient:
     def __init__(self, response):
         self._response = response
