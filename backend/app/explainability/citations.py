@@ -78,9 +78,18 @@ def resolve_citations(record: ProductRecord, doc: IngestedDocument) -> ProductRe
         spec.source.snippet = make_snippet(block)
 
     # Keep any source still cited (catalog's own, or one from a prior call);
-    # drop the old single-placeholder Source that nothing points at anymore.
-    still_referenced = {s.source.reference for s in record.specifications if s.source}
-    kept = [s for s in record.provenance.sources_used if s.id in still_referenced]
+    # drop the old single-placeholder Source only when something more
+    # specific actually replaced it. If nothing resolved at all — a record
+    # with no specifications, or every spec citing a hallucinated block_id
+    # — the original source(s) still describe where this record came from
+    # and must not be discarded: a record with zero traceable sources is
+    # the one thing this pipeline can't afford to produce.
+    if resolved_by_block:
+        still_referenced = {s.source.reference for s in record.specifications if s.source}
+        kept = [s for s in record.provenance.sources_used if s.id in still_referenced]
+    else:
+        kept = list(record.provenance.sources_used)
+
     record.provenance.sources_used = kept + list(resolved_by_block.values())
 
     return record

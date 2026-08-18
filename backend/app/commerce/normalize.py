@@ -21,7 +21,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from app.schemas.attributes import resolve_attribute
-from app.schemas.product import ProductRecord, Specification
+from app.schemas.product import Specification
+from app.validation.checks import _parse_numeric
 from app.validation.units import base_unit_of, convert_to_base
 
 # ISO 4217 is ~180 active codes; PIVOT's sources only ever emit a handful.
@@ -53,21 +54,31 @@ _AVAILABILITY_KEYWORDS: list[tuple[str, str]] = [
 
 
 def normalized_unit_value(spec: Specification) -> tuple[Optional[float], Optional[str]]:
-    """Parses `spec.value` as a float and converts it (with `spec.unit`) to
-    its attribute's base unit via Phase 4's conversion table.
+    """Parses `spec.value` and converts it (with `spec.unit`) to its
+    attribute's base unit via Phase 4's conversion table.
+
+    Reuses Phase 4's own `_parse_numeric` (checks.py) rather than
+    duplicating its embedded-unit-suffix regex here. Real Gemini output
+    sometimes folds the unit into the value string itself (`"12V"` with
+    `unit=None`) rather than keeping them separate — `checks.py` grew a
+    fallback for exactly that shape because it showed up in practice. This
+    module used to parse with a bare `float(spec.value)` and silently
+    return `(None, None)` on that same input: not a crash, but the same
+    data rendering worse in Schema.org/ETIM output purely because of how
+    the LLM happened to phrase a value that Phase 4 parses just fine.
 
     Returns (None, None) when the value isn't numeric, the unit is
     unrecognized, or the attribute has no dictionary entry — categorical
     specs (material, coating) and unresolvable ones fall through unchanged
     so callers can still emit the raw string elsewhere.
     """
-    try:
-        raw_value = float(spec.value)
-    except (TypeError, ValueError):
+    parsed = _parse_numeric(spec.value, spec.unit)
+    if parsed is None:
         return None, None
+    raw_value, unit = parsed
 
-    if spec.unit:
-        converted = convert_to_base(raw_value, spec.unit)
+    if unit:
+        converted = convert_to_base(raw_value, unit)
         if converted is not None:
             return converted
         return None, None
@@ -119,22 +130,3 @@ def confidence_bucket(score: float) -> str:
     if score >= 0.5:
         return "medium"
     return "low"
-
-
-def spec_lookup(record: ProductRecord) -> dict[str, Specification]:
-    """First specification per attribute, keyed by canonical attribute name.
-
-    "First" rather than "highest confidence" deliberately: after Phase 5's
-    `merge_records()`, disagreeing specs are already flagged `needs_review`
-    and kept as separate entries — picking by confidence here would silently
-    prefer one contested value over another instead of surfacing the
-    conflict, which is Phase 6's mapping step overstepping into Phase 4/5's
-    job. Commerce feeds need one value per attribute, but that resolution is
-    these entries' status, not this function's job to redo.
-    """
-    result: dict[str, Specification] = {}
-    for spec in record.specifications:
-        attr_spec = resolve_attribute(spec.attribute)
-        canonical = attr_spec.attribute if attr_spec else spec.attribute
-        result.setdefault(canonical, spec)
-    return result

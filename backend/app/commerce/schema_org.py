@@ -42,16 +42,25 @@ _AVAILABILITY_MAP = {
 def _additional_properties(record: ProductRecord) -> list[dict[str, Any]]:
     props = []
     for spec in record.specifications:
-        value, unit_code = normalized_unit_value(spec)
+        value, base_unit = normalized_unit_value(spec)
         entry: dict[str, Any] = {
             "@type": "PropertyValue",
             "name": spec.attribute,
             "value": value if value is not None else spec.value,
         }
-        if unit_code:
-            entry["unitCode"] = unit_code
-        elif spec.unit:
-            entry["unitText"] = spec.unit
+        # Schema.org's unitCode expects a UN/CEFACT Common Code (e.g. "MMT",
+        # "VLT") or a URL, not an arbitrary string — this pipeline has no
+        # licensed code table for that (the same honest gap
+        # industrial.py's ETIM class_code documents), so the internal base
+        # unit key from normalize.py (e.g. "v", "mm") must never be emitted
+        # as unitCode: that's spec-invalid and leaks an internal identifier
+        # into standards output. unitText is the correct field for a
+        # human-readable unit with no code — prefer the originally declared
+        # unit (already human-readable, e.g. "V") and only fall back to the
+        # resolved base unit, uppercased, when the spec didn't state one.
+        display_unit = spec.unit or (base_unit.upper() if base_unit else None)
+        if display_unit:
+            entry["unitText"] = display_unit
         # Phase 4/5 provenance, carried through via Schema.org's own
         # extension mechanism rather than a PIVOT-only field name.
         entry["valueReference"] = {
