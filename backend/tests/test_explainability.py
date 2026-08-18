@@ -103,16 +103,18 @@ def test_source_page_matches_cited_block(spec_sheet_pdf):
     assert matched.page == cited_block.page
 
 
-def test_stale_placeholder_source_is_dropped(spec_sheet_pdf):
+def test_stale_placeholder_source_is_dropped_when_superseded(spec_sheet_pdf):
+    """When resolution succeeds, the old single-placeholder Source (nothing
+    points at it anymore) is dropped in favor of the more specific resolved
+    one."""
     document = ingest_document(spec_sheet_pdf)
     block_id = _text_block_id(document)
     record = _extractor_style_record(document, block_id)
 
     resolve_citations(record, document)
 
-    assert "src-1" not in {s.id for s in record.provenance.sources_used} or any(
-        spec.source.reference == "src-1" for spec in record.specifications
-    )
+    assert "src-1" not in {s.id for s in record.provenance.sources_used}
+    assert len(record.provenance.sources_used) == 1
 
 
 def test_citing_same_block_twice_dedupes_source(spec_sheet_pdf):
@@ -180,6 +182,43 @@ def test_unresolvable_block_id_left_as_is(spec_sheet_pdf):
     resolve_citations(record, document)
 
     assert record.specifications[0].source.reference == "b9999"
+
+
+def test_no_specs_does_not_wipe_provenance(spec_sheet_pdf):
+    """Regression test (severe): a record with no specifications at all
+    (the LLM extracted name/brand but no attributes) must not lose its
+    only source. The old code computed "still referenced by a spec" from
+    an empty specifications list, got an empty set, and overwrote
+    provenance.sources_used with [] — a record with zero traceable sources
+    is the one thing this pipeline can't afford to produce."""
+    document = ingest_document(spec_sheet_pdf)
+    record = ProductRecord(
+        product_name="Widget",
+        specifications=[],
+        provenance=Provenance(
+            sources_used=[Source(id="src-1", type=SourceType.DOCUMENT, reference=document.source_filename)]
+        ),
+    )
+
+    resolve_citations(record, document)
+
+    assert len(record.provenance.sources_used) == 1
+    assert record.provenance.sources_used[0].reference == document.source_filename
+
+
+def test_every_spec_unresolvable_does_not_wipe_provenance(spec_sheet_pdf):
+    """Regression test (severe): same failure mode as above, triggered
+    differently — every spec cites a block_id that doesn't exist in the
+    document (a hallucinated citation). Nothing resolves, but the record's
+    original source must still survive; it correctly stays unresolved
+    rather than silently vanishing."""
+    document = ingest_document(spec_sheet_pdf)
+    record = _extractor_style_record(document, "b9999")
+
+    resolve_citations(record, document)
+
+    assert len(record.provenance.sources_used) == 1
+    assert record.provenance.sources_used[0].id == "src-1"
 
 
 def test_snippet_truncates_to_max_len(spec_sheet_pdf):

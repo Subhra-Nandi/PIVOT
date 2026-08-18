@@ -18,6 +18,7 @@ from app.commerce.normalize import (
     is_known_currency,
     match_availability,
     normalize_currency,
+    normalized_unit_value,
 )
 from app.commerce.schema_org import to_schema_org, validate_schema_org
 from app.schemas.product import (
@@ -131,6 +132,22 @@ def test_confidence_bucket_thresholds():
     assert confidence_bucket(0.2) == "low"
 
 
+def test_normalized_unit_value_handles_unit_embedded_in_value():
+    """Regression test: Phase 4's checks.py parses "12V" (unit folded into
+    the value string, no separate spec.unit) via a regex fallback because
+    real Gemini output takes this shape. normalize.py used to call bare
+    float(spec.value) and silently return (None, None) on the exact same
+    input Phase 4 handles fine — the same data rendering worse in commerce
+    output purely because of how the LLM happened to phrase it."""
+    embedded = Specification(
+        attribute="voltage_rating", value="12V", confidence=0.9, status=SpecStatus.EXTRACTED
+    )
+    split = Specification(
+        attribute="voltage_rating", value="12", unit="V", confidence=0.9, status=SpecStatus.EXTRACTED
+    )
+    assert normalized_unit_value(embedded) == normalized_unit_value(split) == (12.0, "v")
+
+
 # --- schema_org.py ---
 
 
@@ -156,9 +173,22 @@ def test_to_schema_org_additional_properties_carry_confidence_and_status():
     doc = to_schema_org(_full_record())
     voltage = next(p for p in doc["additionalProperty"] if p["name"] == "voltage_rating")
     assert voltage["value"] == 12.0
-    assert voltage["unitCode"] == "v"
+    # unitCode must be a real UN/CEFACT code or omitted, never the internal
+    # base-unit key normalize.py uses ("v") — see schema_org.py's docstring.
+    assert "unitCode" not in voltage
+    assert voltage["unitText"] == "V"
     assert "0.90" in voltage["description"]
     assert "extracted" in voltage["description"]
+
+
+def test_to_schema_org_additional_properties_never_emit_internal_unit_key_as_code():
+    """Regression test: normalize.py's internal base-unit keys (lowercase,
+    e.g. "v", "mm", "mpa") must never be surfaced as Schema.org's unitCode,
+    which is defined as a UN/CEFACT Common Code or URL — this pipeline has
+    no licensed code table to produce those."""
+    doc = to_schema_org(_full_record())
+    for prop in doc["additionalProperty"]:
+        assert "unitCode" not in prop
 
 
 def test_to_schema_org_sparse_record_is_still_minimally_valid():
@@ -291,6 +321,21 @@ def test_validate_industrial_classification_flags_numeric_value_without_unit():
     }
     issues = validate_industrial_classification(doc)
     assert any("has a numeric value but no resolvable unit" in i for i in issues)
+
+
+def test_validate_industrial_classification_does_not_flag_genuinely_unitless_attribute():
+    """Regression test: an attribute the dictionary itself doesn't define
+    with units (e.g. a count like pin_count) isn't "missing" a unit — it
+    never had one. The old check flagged every unit-less numeric feature
+    indiscriminately, which meant a normal, correct value like pin_count: 8
+    produced permanent noise in a list whose whole value depends on being
+    trustworthy."""
+    doc = {
+        "class_name": "Connectors",
+        "features": [{"feature_name": "pin_count", "value": 8, "unit": None}],
+    }
+    issues = validate_industrial_classification(doc)
+    assert not any("has a numeric value but no resolvable unit" in i for i in issues)
 
 
 # --- mapping.py (orchestrator) ---

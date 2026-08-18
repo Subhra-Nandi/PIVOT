@@ -82,9 +82,25 @@ def validate_industrial_classification(doc: dict[str, Any]) -> list[str]:
     for feature in doc.get("features", []):
         if feature.get("value") is None:
             issues.append(f"required: feature '{feature.get('feature_name')}' has no value")
-        if isinstance(feature.get("value"), (int, float)) and not feature.get("unit"):
+        if (
+            isinstance(feature.get("value"), (int, float))
+            and not feature.get("unit")
+            and _expects_unit(feature.get("feature_name"))
+        ):
             issues.append(
                 f"recommended: feature '{feature.get('feature_name')}' has a numeric value but no resolvable unit"
             )
 
     return issues
+
+
+def _expects_unit(feature_name: str | None) -> bool:
+    """True only for attributes the dictionary itself defines with real
+    units (`allowed_units` non-empty). A genuinely unitless numeric
+    attribute (pin_count, quantity) isn't missing a unit — it never had
+    one — so it must not trip the "no resolvable unit" warning just because
+    it happens to be numeric."""
+    if not feature_name:
+        return False
+    attr_spec = resolve_attribute(feature_name)
+    return bool(attr_spec and attr_spec.allowed_units)
