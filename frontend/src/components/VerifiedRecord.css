@@ -1,0 +1,10 @@
+.spec-table {
+  border-top: 1px solid var(--line);
+}
+
+.spec-table__empty {
+  padding: 16px 4px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}

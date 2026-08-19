@@ -1,0 +1,99 @@
+.spec-row {
+  border-bottom: 1px solid var(--line);
+}
+
+.spec-row__main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 90px 40px auto 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+}
+
+.spec-row__main:disabled {
+  cursor: default;
+}
+
+.spec-row__main:hover:not(:disabled) {
+  background: var(--paper-inset);
+}
+
+.spec-row__attribute {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-transform: capitalize;
+}
+
+.spec-row__value {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+}
+
+.spec-row__confidence {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--paper-deep);
+  overflow: hidden;
+}
+
+.spec-row__confidence-fill {
+  display: block;
+  height: 100%;
+  background: var(--steel);
+}
+
+.spec-row__confidence-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.spec-row__toggle {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.spec-row__citation {
+  padding: 0 4px 16px 4px;
+}
+
+.spec-row__citation-label {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--steel);
+}
+
+.spec-row__citation-snippet {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--paper-inset);
+  border-left: 3px solid var(--steel);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 640px) {
+  .spec-row__main {
+    grid-template-columns: 1fr 1fr auto;
+    row-gap: 6px;
+  }
+
+  .spec-row__confidence,
+  .spec-row__confidence-label {
+    display: none;
+  }
+}
