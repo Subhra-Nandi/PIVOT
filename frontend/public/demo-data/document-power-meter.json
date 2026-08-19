@@ -1,0 +1,238 @@
+{
+  "example_id": "document-power-meter",
+  "title": "ACS37800 Power Meter Module",
+  "source_kind": "document",
+  "raw_input": {
+    "label": "acs37800_datasheet.pdf \u2014 page 1",
+    "text": "ACS37800 Power Meter Module\nSupply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65.\nSuitable for harsh factory floor environments with heavy dust exposure."
+  },
+  "product_record": {
+    "schema_version": "0.1.0",
+    "product_id": null,
+    "product_name": "ACS37800 Power Meter Module",
+    "brand": "SparkFun",
+    "category": {
+      "predicted": "",
+      "confidence": 0.0
+    },
+    "description": "Qwiic power monitoring breakout with current/voltage sensing.",
+    "identifiers": {
+      "sku": null,
+      "gtin": null,
+      "mpn": null
+    },
+    "media": {
+      "images": []
+    },
+    "commercial": {
+      "price": null,
+      "availability": null
+    },
+    "compliance": [],
+    "specifications": [
+      {
+        "attribute": "voltage_rating",
+        "value": "5V",
+        "unit": "V",
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-2",
+          "snippet": "Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+        }
+      },
+      {
+        "attribute": "current_rating",
+        "value": "7.6A",
+        "unit": "A",
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-2",
+          "snippet": "Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+        }
+      },
+      {
+        "attribute": "ip_rating",
+        "value": "IP65",
+        "unit": null,
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-2",
+          "snippet": "Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+        }
+      },
+      {
+        "attribute": "environmental_rating",
+        "value": "Industrial (dust-resistant)",
+        "unit": null,
+        "confidence": 0.0,
+        "status": "needs_review",
+        "source": {
+          "type": "document",
+          "reference": "src-3",
+          "snippet": "Suitable for harsh factory floor environments with heavy dust exposure."
+        }
+      }
+    ],
+    "provenance": {
+      "sources_used": [
+        {
+          "id": "src-2",
+          "type": "document",
+          "reference": "acs37800_datasheet.pdf",
+          "page": 1,
+          "retrieved_at": "2026-08-19T15:01:23.437134Z"
+        },
+        {
+          "id": "src-3",
+          "type": "document",
+          "reference": "acs37800_datasheet.pdf",
+          "page": 1,
+          "retrieved_at": "2026-08-19T15:01:23.437134Z"
+        }
+      ],
+      "extraction_timestamp": "2026-08-19T15:01:23.454344Z"
+    },
+    "validation": {
+      "overall_confidence": 0.71,
+      "conflicts": []
+    }
+  },
+  "commerce": {
+    "schema_org": {
+      "document": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "ACS37800 Power Meter Module",
+        "brand": {
+          "@type": "Brand",
+          "name": "SparkFun"
+        },
+        "description": "Qwiic power monitoring breakout with current/voltage sensing.",
+        "additionalProperty": [
+          {
+            "@type": "PropertyValue",
+            "name": "voltage_rating",
+            "value": 5.0,
+            "unitText": "V",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "current_rating",
+            "value": 7.6,
+            "unitText": "A",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "ip_rating",
+            "value": "IP65",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "environmental_rating",
+            "value": "Industrial (dust-resistant)",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "needs_review"
+            },
+            "description": "confidence=0.00, status=needs_review, source snippet: Suitable for harsh factory floor environments with heavy dust exposure."
+          }
+        ],
+        "dateModified": "2026-08-19T15:01:23.454344+00:00"
+      },
+      "issues": [
+        "recommended: image is missing (Google Merchant Center requires it)",
+        "recommended: offers is missing (no price/availability data)",
+        "recommended: at least one of sku/gtin/mpn should be present"
+      ]
+    },
+    "google_shopping": {
+      "document": {
+        "id": "ACS37800 Power Meter Module",
+        "title": "ACS37800 Power Meter Module",
+        "description": "Qwiic power monitoring breakout with current/voltage sensing.",
+        "brand": "SparkFun",
+        "custom_label_0": "medium"
+      },
+      "issues": [
+        "required: link is missing (no website-sourced URL available)",
+        "required: image_link is missing",
+        "required: availability is missing or unrecognized",
+        "required: price is missing (no price, no currency, or unrecognized currency)",
+        "recommended: condition is not set (PIVOT has no condition signal)",
+        "recommended: google_product_category is not set (no taxonomy match implemented)"
+      ]
+    },
+    "industrial": {
+      "document": {
+        "class_code": null,
+        "class_name": null,
+        "class_name_confidence": 0.0,
+        "classification_note": "class_code/feature_code are unset: no ETIM/UNSPSC licensed classification database is available to this pipeline. Category and feature/value/unit structure are populated from PIVOT's own extraction and are ready to join against a real code table.",
+        "brand": "SparkFun",
+        "mpn": null,
+        "features": [
+          {
+            "feature_code": null,
+            "feature_name": "voltage_rating",
+            "value": 5.0,
+            "unit": "v",
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "current_rating",
+            "value": 7.6,
+            "unit": "a",
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "ip_rating",
+            "value": "IP65",
+            "unit": null,
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "environmental_rating",
+            "value": "Industrial (dust-resistant)",
+            "unit": null,
+            "confidence": 0.0,
+            "status": "needs_review"
+          }
+        ]
+      },
+      "issues": [
+        "recommended: class_name is missing (no predicted category)"
+      ]
+    }
+  }
+}

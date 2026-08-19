@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --paper: #ede9de;
+  --paper-inset: #e2ddce;
+  --paper-deep: #d8d1bd;
+  --ink: #211f1c;
+  --ink-soft: #55524a;
+  --line: #c7c0ac;
+  --steel: #35507a;
+  --steel-soft: #7c93b4;
+  --pass: #2f6b4f;
+  --pass-soft: #dce8e0;
+  --review: #a8641f;
+  --review-soft: #f0dfc4;
+  --conflict: #a33636;
+  --conflict-soft: #f0d6d3;
+
+  --font-display: 'Big Shoulders Display', sans-serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--steel);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+button {
+  font-family: inherit;
+}
+
+.app {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+.loading,
+.error {
+  padding: 80px 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+}

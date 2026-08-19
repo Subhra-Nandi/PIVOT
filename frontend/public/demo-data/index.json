@@ -1,0 +1,20 @@
+[
+  {
+    "example_id": "catalog-terminal-block",
+    "title": "Panel Mount Terminal Block v1",
+    "source_kind": "catalog",
+    "file": "catalog-terminal-block.json"
+  },
+  {
+    "example_id": "document-power-meter",
+    "title": "ACS37800 Power Meter Module",
+    "source_kind": "document",
+    "file": "document-power-meter.json"
+  },
+  {
+    "example_id": "merged-hex-bolt-conflict",
+    "title": "M8 Hex Bolt Zinc Plated",
+    "source_kind": "merged",
+    "file": "merged-hex-bolt-conflict.json"
+  }
+]

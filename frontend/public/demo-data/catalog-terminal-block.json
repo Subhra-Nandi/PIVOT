@@ -1,0 +1,272 @@
+{
+  "example_id": "catalog-terminal-block",
+  "title": "Panel Mount Terminal Block v1",
+  "source_kind": "catalog",
+  "raw_input": {
+    "label": "demo_catalog.csv \u2014 header + row 1",
+    "text": "Product Name,Brand,SKU,MPN,Category,Description,Rated Voltage,Current Rating,IP Rating,Operating Temperature,Thread Size,Tensile Strength,Material,Coating,Length,Weight,Price,Currency,Availability,Warehouse Bin\nPanel Mount Terminal Block v1,Phoenix Contact,PCX-001,PXC-TB,Electrical,DIN rail terminal block for industrial wiring.,3V,0.7A,IP65,-40C,,,,,,48.5g,67.55,USD,backorder,W9-21\n"
+  },
+  "product_record": {
+    "schema_version": "0.1.0",
+    "product_id": null,
+    "product_name": "Panel Mount Terminal Block v1",
+    "brand": "Phoenix Contact",
+    "category": {
+      "predicted": "Electrical",
+      "confidence": 1.0
+    },
+    "description": "DIN rail terminal block for industrial wiring.",
+    "identifiers": {
+      "sku": "PCX-001",
+      "gtin": null,
+      "mpn": "PXC-TB"
+    },
+    "media": {
+      "images": []
+    },
+    "commercial": {
+      "price": {
+        "value": 67.55,
+        "currency": "USD"
+      },
+      "availability": "backorder"
+    },
+    "compliance": [],
+    "specifications": [
+      {
+        "attribute": "voltage_rating",
+        "value": "3V",
+        "unit": null,
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-1",
+          "snippet": "row 1, column 'Rated Voltage'"
+        }
+      },
+      {
+        "attribute": "current_rating",
+        "value": "0.7A",
+        "unit": null,
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-1",
+          "snippet": "row 1, column 'Current Rating'"
+        }
+      },
+      {
+        "attribute": "ip_rating",
+        "value": "IP65",
+        "unit": null,
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-1",
+          "snippet": "row 1, column 'IP Rating'"
+        }
+      },
+      {
+        "attribute": "operating_temp",
+        "value": "-40C",
+        "unit": null,
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-1",
+          "snippet": "row 1, column 'Operating Temperature'"
+        }
+      },
+      {
+        "attribute": "weight",
+        "value": "48.5g",
+        "unit": null,
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-1",
+          "snippet": "row 1, column 'Weight'"
+        }
+      }
+    ],
+    "provenance": {
+      "sources_used": [
+        {
+          "id": "src-1",
+          "type": "document",
+          "reference": "demo_catalog.csv",
+          "page": null,
+          "retrieved_at": null
+        }
+      ],
+      "extraction_timestamp": null
+    },
+    "validation": {
+      "overall_confidence": 0.95,
+      "conflicts": []
+    }
+  },
+  "commerce": {
+    "schema_org": {
+      "document": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "Panel Mount Terminal Block v1",
+        "brand": {
+          "@type": "Brand",
+          "name": "Phoenix Contact"
+        },
+        "description": "DIN rail terminal block for industrial wiring.",
+        "sku": "PCX-001",
+        "mpn": "PXC-TB",
+        "category": "Electrical",
+        "offers": {
+          "@type": "Offer",
+          "price": 67.55,
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/BackOrder"
+        },
+        "additionalProperty": [
+          {
+            "@type": "PropertyValue",
+            "name": "voltage_rating",
+            "value": 3.0,
+            "unitText": "V",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: row 1, column 'Rated Voltage'"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "current_rating",
+            "value": 0.7,
+            "unitText": "A",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: row 1, column 'Current Rating'"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "ip_rating",
+            "value": "IP65",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: row 1, column 'IP Rating'"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "operating_temp",
+            "value": -40.0,
+            "unitText": "\u00b0C",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: row 1, column 'Operating Temperature'"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "weight",
+            "value": 48.5,
+            "unitText": "G",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "extracted"
+            },
+            "description": "confidence=0.95, status=extracted, source snippet: row 1, column 'Weight'"
+          }
+        ]
+      },
+      "issues": [
+        "recommended: image is missing (Google Merchant Center requires it)"
+      ]
+    },
+    "google_shopping": {
+      "document": {
+        "id": "PCX-001",
+        "title": "Panel Mount Terminal Block v1",
+        "description": "DIN rail terminal block for industrial wiring.",
+        "brand": "Phoenix Contact",
+        "mpn": "PXC-TB",
+        "price": "67.55 USD",
+        "availability": "backorder",
+        "custom_label_0": "high"
+      },
+      "issues": [
+        "required: link is missing (no website-sourced URL available)",
+        "required: image_link is missing",
+        "recommended: condition is not set (PIVOT has no condition signal)",
+        "recommended: google_product_category is not set (no taxonomy match implemented)"
+      ]
+    },
+    "industrial": {
+      "document": {
+        "class_code": null,
+        "class_name": "Electrical",
+        "class_name_confidence": 1.0,
+        "classification_note": "class_code/feature_code are unset: no ETIM/UNSPSC licensed classification database is available to this pipeline. Category and feature/value/unit structure are populated from PIVOT's own extraction and are ready to join against a real code table.",
+        "brand": "Phoenix Contact",
+        "mpn": "PXC-TB",
+        "features": [
+          {
+            "feature_code": null,
+            "feature_name": "voltage_rating",
+            "value": 3.0,
+            "unit": "v",
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "current_rating",
+            "value": 0.7,
+            "unit": "a",
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "ip_rating",
+            "value": "IP65",
+            "unit": null,
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "operating_temp",
+            "value": -40.0,
+            "unit": "\u00b0c",
+            "confidence": 0.95,
+            "status": "extracted"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "weight",
+            "value": 48.5,
+            "unit": "g",
+            "confidence": 0.95,
+            "status": "extracted"
+          }
+        ]
+      },
+      "issues": []
+    }
+  }
+}

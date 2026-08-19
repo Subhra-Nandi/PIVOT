@@ -1,0 +1,188 @@
+{
+  "example_id": "merged-hex-bolt-conflict",
+  "title": "M8 Hex Bolt Zinc Plated",
+  "source_kind": "merged",
+  "raw_input": {
+    "label": "2 sources: bolt_depot_spec_sheet.pdf (p.2) + boltdepot.example.com listing",
+    "text": "Source A (PDF, page 2): Tensile strength: 400 MPa (Grade 8.8).\n\nSource B (website listing): Tensile strength (per listing page): 600 MPa"
+  },
+  "product_record": {
+    "schema_version": "0.1.0",
+    "product_id": null,
+    "product_name": "M8 Hex Bolt Zinc Plated",
+    "brand": "Bolt Depot",
+    "category": {
+      "predicted": "",
+      "confidence": 0.0
+    },
+    "description": "",
+    "identifiers": {
+      "sku": "BDM8-006",
+      "gtin": null,
+      "mpn": "BD-M8HEX"
+    },
+    "media": {
+      "images": []
+    },
+    "commercial": {
+      "price": null,
+      "availability": null
+    },
+    "compliance": [],
+    "specifications": [
+      {
+        "attribute": "tensile_strength",
+        "value": "400",
+        "unit": "MPa",
+        "confidence": 0.9,
+        "status": "needs_review",
+        "source": {
+          "type": "document",
+          "reference": "src-1",
+          "snippet": "[Mechanical] Tensile strength: 400 MPa (Grade 8.8)."
+        }
+      },
+      {
+        "attribute": "tensile_strength",
+        "value": "600",
+        "unit": "MPa",
+        "confidence": 0.7,
+        "status": "needs_review",
+        "source": {
+          "type": "website",
+          "reference": "src-2",
+          "snippet": "Tensile strength (per listing page): 600 MPa"
+        }
+      }
+    ],
+    "provenance": {
+      "sources_used": [
+        {
+          "id": "src-1",
+          "type": "document",
+          "reference": "bolt_depot_spec_sheet.pdf",
+          "page": 2,
+          "retrieved_at": null
+        },
+        {
+          "id": "src-2",
+          "type": "website",
+          "reference": "https://boltdepot.example.com/products/54",
+          "page": null,
+          "retrieved_at": null
+        }
+      ],
+      "extraction_timestamp": null
+    },
+    "validation": {
+      "overall_confidence": 0.8,
+      "conflicts": [
+        {
+          "attribute": "tensile_strength",
+          "values": [
+            "400",
+            "600"
+          ],
+          "sources": [
+            "src-1",
+            "src-2"
+          ]
+        }
+      ]
+    }
+  },
+  "commerce": {
+    "schema_org": {
+      "document": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "M8 Hex Bolt Zinc Plated",
+        "brand": {
+          "@type": "Brand",
+          "name": "Bolt Depot"
+        },
+        "sku": "BDM8-006",
+        "mpn": "BD-M8HEX",
+        "additionalProperty": [
+          {
+            "@type": "PropertyValue",
+            "name": "tensile_strength",
+            "value": 400.0,
+            "unitText": "MPa",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "needs_review"
+            },
+            "description": "confidence=0.90, status=needs_review, source snippet: [Mechanical] Tensile strength: 400 MPa (Grade 8.8)."
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "tensile_strength",
+            "value": 600.0,
+            "unitText": "MPa",
+            "valueReference": {
+              "@type": "PropertyValue",
+              "name": "extractionStatus",
+              "value": "needs_review"
+            },
+            "description": "confidence=0.70, status=needs_review, source snippet: Tensile strength (per listing page): 600 MPa"
+          }
+        ]
+      },
+      "issues": [
+        "recommended: image is missing (Google Merchant Center requires it)",
+        "recommended: offers is missing (no price/availability data)"
+      ]
+    },
+    "google_shopping": {
+      "document": {
+        "id": "BDM8-006",
+        "title": "M8 Hex Bolt Zinc Plated",
+        "link": "https://boltdepot.example.com/products/54",
+        "brand": "Bolt Depot",
+        "mpn": "BD-M8HEX",
+        "custom_label_0": "high"
+      },
+      "issues": [
+        "required: description is missing",
+        "required: image_link is missing",
+        "required: availability is missing or unrecognized",
+        "required: price is missing (no price, no currency, or unrecognized currency)",
+        "recommended: condition is not set (PIVOT has no condition signal)",
+        "recommended: google_product_category is not set (no taxonomy match implemented)"
+      ]
+    },
+    "industrial": {
+      "document": {
+        "class_code": null,
+        "class_name": null,
+        "class_name_confidence": 0.0,
+        "classification_note": "class_code/feature_code are unset: no ETIM/UNSPSC licensed classification database is available to this pipeline. Category and feature/value/unit structure are populated from PIVOT's own extraction and are ready to join against a real code table.",
+        "brand": "Bolt Depot",
+        "mpn": "BD-M8HEX",
+        "features": [
+          {
+            "feature_code": null,
+            "feature_name": "tensile_strength",
+            "value": 400.0,
+            "unit": "mpa",
+            "confidence": 0.9,
+            "status": "needs_review"
+          },
+          {
+            "feature_code": null,
+            "feature_name": "tensile_strength",
+            "value": 600.0,
+            "unit": "mpa",
+            "confidence": 0.7,
+            "status": "needs_review"
+          }
+        ]
+      },
+      "issues": [
+        "recommended: class_name is missing (no predicted category)"
+      ]
+    }
+  }
+}
