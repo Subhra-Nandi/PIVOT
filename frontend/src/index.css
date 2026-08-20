@@ -59,7 +59,7 @@ button {
 }
 
 .app {
-  max-width: 980px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 24px 80px;
 }
@@ -70,4 +70,48 @@ button {
   text-align: center;
   font-family: var(--font-mono);
   color: var(--ink-soft);
+}
+
+/* Feature: Interactive Source-to-Data Split Screen — raw source stays
+   pinned on the left while the verified record scrolls independently on
+   the right, so a judge can click a field and watch the left pane jump to
+   proof without losing their place in the record. */
+.split-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  padding: 8px 0 24px;
+}
+
+.split-screen__source {
+  position: sticky;
+  top: 16px;
+}
+
+.split-screen__source .scan-strip {
+  max-height: 76vh;
+  overflow-y: auto;
+}
+
+mark {
+  background: var(--review-soft);
+  color: var(--ink);
+  border-bottom: 2px solid var(--review);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+@media (max-width: 860px) {
+  .split-screen {
+    grid-template-columns: 1fr;
+  }
+
+  .split-screen__source {
+    position: static;
+  }
+
+  .split-screen__source .scan-strip {
+    max-height: 300px;
+  }
 }

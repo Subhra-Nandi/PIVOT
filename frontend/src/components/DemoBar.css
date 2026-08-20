@@ -1,7 +1,20 @@
-.tags {
+.demo-bar {
+  padding: 20px 0 8px;
+}
+
+.demo-bar__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+
+.demo-bar__tags {
   display: flex;
   gap: 14px;
-  padding: 24px 0;
   flex-wrap: wrap;
 }
 

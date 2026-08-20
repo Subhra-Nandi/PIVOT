@@ -1,0 +1,178 @@
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  padding: 48px 0 32px;
+  border-bottom: 3px double var(--line);
+  flex-wrap: wrap;
+}
+
+.hud__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 4px;
+}
+
+.hud__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 4rem;
+  line-height: 0.9;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.hud__subtitle {
+  max-width: 46ch;
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.hud__panel {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Feature: Visual Trust & Inspection HUD — an animated gauge ring stands
+   in for the "stamp of approval" a judge would look for on an inspected
+   part, with the fill sweeping in on load rather than appearing static. */
+.gauge {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.gauge__ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.gauge__track {
+  fill: none;
+  stroke: var(--paper-deep);
+  stroke-width: 10;
+}
+
+.gauge__fill {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gauge--pass .gauge__fill {
+  stroke: var(--pass);
+}
+
+.gauge--note .gauge__fill {
+  stroke: var(--steel);
+}
+
+.gauge--hold .gauge__fill {
+  stroke: var(--review);
+}
+
+.gauge__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.gauge__value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.gauge__caption {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.hud__pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pill:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pill--pass {
+  color: var(--pass);
+}
+
+.pill--hold {
+  color: var(--review);
+}
+
+.pill--conflict {
+  color: var(--conflict);
+}
+
+.pill--note {
+  color: var(--steel);
+}
+
+.pill--active {
+  color: var(--paper);
+}
+
+.pill--pass.pill--active {
+  background: var(--pass);
+}
+
+.pill--hold.pill--active {
+  background: var(--review);
+}
+
+.pill--conflict.pill--active {
+  background: var(--conflict);
+}
+
+.pill--note.pill--active {
+  background: var(--steel);
+}
+
+@media (max-width: 640px) {
+  .hud {
+    align-items: flex-start;
+  }
+
+  .hud__title {
+    font-size: 2.75rem;
+  }
+}
