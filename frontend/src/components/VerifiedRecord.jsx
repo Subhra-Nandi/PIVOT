@@ -1,12 +1,17 @@
-import ConflictBanner from './ConflictBanner';
+import ConflictResolver from './ConflictResolver';
 import SpecRow from './SpecRow';
 import './Panel.css';
 import './VerifiedRecord.css';
 
-export default function VerifiedRecord({ record }) {
-  const sourcesUsed = record.provenance?.sources_used ?? [];
-  const resolveSource = (spec) =>
-    spec.source ? sourcesUsed.find((s) => s.id === spec.source.reference) : undefined;
+export default function VerifiedRecord({ record, sourcesUsed, statusFilter, onHighlight, onResolveConflict }) {
+  const resolveSource = (spec) => (spec.source ? sourcesUsed.find((s) => s.id === spec.source.reference) : undefined);
+
+  const conflictAttributes = new Set((record.validation?.conflicts ?? []).map((c) => c.attribute));
+  const visibleSpecs = record.specifications.filter((spec) => {
+    if (!statusFilter) return true;
+    if (statusFilter === 'conflict') return conflictAttributes.has(spec.attribute);
+    return spec.status === statusFilter;
+  });
 
   return (
     <section className="panel">
@@ -18,14 +23,20 @@ export default function VerifiedRecord({ record }) {
         {record.brand ? ` \u00b7 ${record.brand}` : ''}
       </p>
 
-      <ConflictBanner conflicts={record.validation?.conflicts} sourcesUsed={sourcesUsed} />
+      <ConflictResolver
+        conflicts={record.validation?.conflicts}
+        sourcesUsed={sourcesUsed}
+        onResolve={onResolveConflict}
+      />
 
       <div className="spec-table">
-        {record.specifications.length === 0 ? (
-          <p className="spec-table__empty">No specifications extracted.</p>
+        {visibleSpecs.length === 0 ? (
+          <p className="spec-table__empty">
+            {record.specifications.length === 0 ? 'No specifications extracted.' : 'No fields match this filter.'}
+          </p>
         ) : (
-          record.specifications.map((spec, i) => (
-            <SpecRow key={`${spec.attribute}-${i}`} spec={spec} resolvedSource={resolveSource(spec)} />
+          visibleSpecs.map((spec, i) => (
+            <SpecRow key={`${spec.attribute}-${i}`} spec={spec} resolvedSource={resolveSource(spec)} onHighlight={onHighlight} />
           ))
         )}
       </div>

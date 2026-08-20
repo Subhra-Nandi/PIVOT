@@ -29,6 +29,11 @@
   margin: 0 0 16px;
 }
 
+.panel__hint {
+  color: var(--steel);
+}
+
+
 .scan-strip {
   margin: 0;
   padding: 18px 20px;

@@ -76,7 +76,7 @@
 }
 
 .spec-row__citation-snippet {
-  margin: 0;
+  margin: 0 0 8px;
   padding: 10px 14px;
   background: var(--paper-inset);
   border-left: 3px solid var(--steel);
@@ -84,6 +84,17 @@
   font-size: 0.82rem;
   font-style: italic;
   color: var(--ink-soft);
+}
+
+.spec-row__locate {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  color: var(--steel);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  cursor: pointer;
+  text-decoration: underline;
 }
 
 @media (max-width: 640px) {

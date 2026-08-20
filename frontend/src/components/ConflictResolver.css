@@ -1,0 +1,85 @@
+.conflict-resolver {
+  margin: 0 0 20px;
+  padding: 16px 20px;
+  background: var(--conflict-soft);
+  border: 1.5px solid var(--conflict);
+  border-radius: 4px;
+}
+
+.conflict-resolver__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.conflict-resolver__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--conflict);
+}
+
+.diff-card {
+  padding: 12px 0;
+  border-top: 1px solid rgba(163, 54, 54, 0.25);
+}
+
+.diff-card__attribute {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.diff-card__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.diff-card__option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.diff-card__option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diff-card__value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.diff-card__source {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+.diff-card__resolve {
+  align-self: flex-start;
+  padding: 6px 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.diff-card__resolve:hover {
+  background: var(--steel);
+}

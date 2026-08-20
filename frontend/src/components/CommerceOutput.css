@@ -1,7 +1,9 @@
 .format-tabs {
   display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
 .format-tab {
@@ -26,10 +28,259 @@
   color: var(--paper);
 }
 
+.view-toggle {
+  margin-left: auto;
+  display: flex;
+  border: 1.5px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.view-toggle__btn {
+  padding: 6px 12px;
+  background: var(--paper);
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.view-toggle__btn--active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* --- code card / JSON --- */
+
+.code-card {
+  position: relative;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 12px;
+  background: var(--steel);
+  color: var(--paper);
+  border: none;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+  z-index: 1;
+}
+
 .commerce-json {
   max-height: 360px;
   overflow-y: auto;
 }
+
+.json-key {
+  color: #9cc4e4;
+}
+
+.json-string {
+  color: #d8b877;
+}
+
+.json-number {
+  color: #c98a7d;
+}
+
+.json-boolean,
+.json-null {
+  color: #a3c9a8;
+}
+
+/* --- Google Shopping mock card --- */
+
+.mock-gcard {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.mock-gcard__image {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--paper-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mock-gcard__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mock-gcard__placeholder {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.mock-gcard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mock-gcard__title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+}
+
+.mock-gcard__price {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #1a1a1a;
+}
+
+.mock-gcard__availability {
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--pass);
+}
+
+.mock-gcard__brand,
+.mock-gcard__description {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: #5f6368;
+}
+
+/* --- Schema.org rich result preview --- */
+
+.mock-rich-result__eyebrow {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.mock-rich-result__card {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 380px;
+}
+
+.mock-rich-result__image {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--paper-inset);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mock-rich-result__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mock-rich-result__title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #1a1a1a;
+}
+
+.mock-rich-result__brand {
+  margin: 2px 0 0;
+  font-size: 0.76rem;
+  color: #5f6368;
+}
+
+.mock-rich-result__price {
+  margin: 6px 0 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+}
+
+/* --- ETIM technical data sheet --- */
+
+.etim-sheet {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.etim-sheet__header {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--paper-deep);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.etim-sheet__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.etim-sheet__table th {
+  text-align: left;
+  padding: 8px 14px;
+  background: var(--paper-inset);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.etim-sheet__table td {
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  text-transform: capitalize;
+}
+
+.etim-sheet__note {
+  margin: 0;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  background: var(--paper-inset);
+  border-top: 1px solid var(--line);
+  text-transform: none;
+}
+
+/* --- validation issues (shared across formats) --- */
 
 .commerce-issues {
   list-style: none;
