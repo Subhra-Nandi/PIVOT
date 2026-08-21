@@ -91,7 +91,13 @@ async def extract_from_file(file: UploadFile = File(...)):
     try:
         if suffix in {".csv", ".xlsx"}:
             result = ingest_catalog(tmp_path)
+            if not result.records:
+                raise HTTPException(400, "No valid product records found in catalog file.")
+
+            first_record = result.records[0]
             return {
+                "product_record": first_record.model_dump(mode="json"),
+                "commerce": map_to_all(first_record),
                 "source_format": result.source_format,
                 "total_rows": result.total_rows,
                 "row_warnings": result.row_warnings,
