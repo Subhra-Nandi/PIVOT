@@ -180,7 +180,7 @@ export default function App() {
                   isUploading ? 'opacity-50 pointer-events-none' : ''
                 }`}
               >
-                {isUploading ? 'Extracting via API...' : 'Upload & Extract File'}
+                {isUploading ? 'Extracting via API (this can take up to a minute)...' : 'Upload & Extract File'}
               </label>
               <input
                 id="live-file-upload"
