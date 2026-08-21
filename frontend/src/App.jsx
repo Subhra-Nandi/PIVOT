@@ -99,9 +99,15 @@ export default function App() {
       const liveData = await response.json();
 
       const formattedData = {
-        example_id: `custom_${Date.now()}`,
-        ...liveData,
-      };
+       example_id: `custom_${Date.now()}`,
+       raw_input: {
+        label: `Live upload: ${file.name}`,
+        text: liveData.items
+         ? `${liveData.total_rows} row(s) parsed from ${file.name}. Row warnings: ${liveData.row_warnings?.length || 0}.`
+         : `Extracted from ${file.name} via live pipeline — no raw text captured in this response.`,
+},
+  ...liveData,
+};
 
       setSelectedId('custom_live_upload');
       setBaseExample(formattedData);
@@ -179,7 +185,7 @@ export default function App() {
               <input
                 id="live-file-upload"
                 type="file"
-                accept=".pdf,.csv,.xlsx,.docx,.txt"
+                accept=".pdf,.csv,.xlsx,.docx"
                 onChange={handleFileUpload}
                 className="hidden"
                 disabled={isUploading}
