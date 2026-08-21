@@ -6,20 +6,22 @@ import VerifiedRecord from './components/VerifiedRecord';
 import CommerceOutput from './components/CommerceOutput';
 import { resolveConflict } from './lib/resolveConflict';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pivot-backend-8ydb.onrender.com';
+
 export default function App() {
   const [index, setIndex] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [baseExample, setBaseExample] = useState(null);
   const [error, setError] = useState(null);
-
-  // Client-side conflict resolutions, keyed by example id then attribute.
-  // Kept separate from baseExample so switching demos and back doesn't
-  // lose (or leak) a resolution from a different record.
   const [overridesByExample, setOverridesByExample] = useState({});
-
   const [statusFilter, setStatusFilter] = useState(null); // null | 'extracted' | 'inferred' | 'needs_review'
-  const [activeSnippet, setActiveSnippet] = useState(null); // citation <-> raw source sync
+  const [activeSnippet, setActiveSnippet] = useState(null);
 
+  // Live Extraction State
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  // 1. Fetch demo index on mount
   useEffect(() => {
     fetch('/demo-data/index.json')
       .then((r) => {
@@ -33,12 +35,16 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, []);
 
+  // 2. Load demo data when selecting a preset
   useEffect(() => {
-    if (!index || !selectedId) return;
+    if (!index || !selectedId || selectedId === 'custom_live_upload') return;
     const entry = index.find((e) => e.example_id === selectedId);
     if (!entry) return;
+
     setStatusFilter(null);
     setActiveSnippet(null);
+    setUploadError(null);
+
     fetch(`/demo-data/${entry.file}`)
       .then((r) => {
         if (!r.ok) throw new Error(`${entry.file}: ${r.status}`);
@@ -48,9 +54,7 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, [index, selectedId]);
 
-  // Fold this example's accepted conflict resolutions (if any) onto the
-  // freshly-fetched base example. resolveConflict() is pure, so re-applying
-  // the whole chain on every render is cheap and can't drift from state.
+  // 3. Fold accepted conflict resolutions onto baseExample
   const example = useMemo(() => {
     if (!baseExample) return null;
     const overrides = overridesByExample[baseExample.example_id] ?? {};
@@ -71,6 +75,46 @@ export default function App() {
     }));
   }
 
+  // 4. Handle Live File Upload to Render FastAPI Endpoint
+  async function handleFileUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/extract/file`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend request failed with status ${response.status}`);
+      }
+
+      const liveData = await response.json();
+
+      const formattedData = {
+        example_id: `custom_${Date.now()}`,
+        ...liveData,
+      };
+
+      setSelectedId('custom_live_upload');
+      setBaseExample(formattedData);
+      setStatusFilter(null);
+      setActiveSnippet(null);
+    } catch (err) {
+      console.error('File extraction error:', err);
+      setUploadError(err.message || 'Failed to extract file from API');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-6">
@@ -81,7 +125,7 @@ export default function App() {
     );
   }
 
-  if (!index || !example) {
+  if (!baseExample) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
         <div className="font-mono text-sm text-zinc-500">Loading inspection report&hellip;</div>
@@ -89,14 +133,14 @@ export default function App() {
     );
   }
 
-  const record = example.product_record;
+  const record = example.product_record ?? {};
   const specs = record.specifications ?? [];
   const grounded = specs.filter((s) => s.status === 'extracted').length;
   const unverified = specs.filter((s) => s.status === 'inferred').length;
   const conflictCount = record.validation?.conflicts?.length ?? 0;
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-zinc-950 text-white font-sans">
       <TrustHud
         overallConfidence={record.validation?.overall_confidence}
         counts={{ grounded, unverified, conflict: conflictCount }}
@@ -105,12 +149,55 @@ export default function App() {
       />
 
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-        <DemoBar examples={index} selectedId={selectedId} onSelect={setSelectedId} />
+        <DemoBar
+          examples={index}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+
+        {/* Live Upload Box */}
+        <div className="mt-6 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-lime-400/50">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-left">
+              <p className="font-mono text-sm font-medium text-zinc-200">
+                ⚡ Live Backend File Extraction
+              </p>
+              <p className="font-mono text-xs text-zinc-400">
+                Upload a custom PDF or CSV file to send directly to your live API.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="live-file-upload"
+                className={`inline-flex cursor-pointer items-center justify-center rounded-lg bg-lime-400 px-4 py-2 font-mono text-xs font-semibold text-zinc-950 shadow transition-all hover:bg-lime-300 ${
+                  isUploading ? 'opacity-50 pointer-events-none' : ''
+                }`}
+              >
+                {isUploading ? 'Extracting via API...' : 'Upload & Extract File'}
+              </label>
+              <input
+                id="live-file-upload"
+                type="file"
+                accept=".pdf,.csv,.xlsx,.docx,.txt"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+
+          {uploadError && (
+            <div className="mt-3 font-mono text-xs text-rose-400">
+              Error: {uploadError}
+            </div>
+          )}
+        </div>
 
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <SourceInspector
-            label={example.raw_input.label}
-            text={example.raw_input.text}
+            label={example.raw_input?.label || 'Source Input'}
+            text={example.raw_input?.text || ''}
             activeSnippet={activeSnippet}
           />
           <VerifiedRecord
