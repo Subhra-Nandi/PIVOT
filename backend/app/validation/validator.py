@@ -56,7 +56,10 @@ def _score_spec(spec, blocks: list[ContentBlock] | None) -> float:
 
     if blocks is not None and spec.source is not None:
         block = find_block(blocks, spec.source.reference)
-        if block is not None and not check_groundedness(spec.value, block):
+        if block is None:
+            confidence -= _UNGROUNDED_PENALTY
+            spec.status = SpecStatus.NEEDS_REVIEW
+        elif not check_groundedness(spec.value, block):
             confidence -= _UNGROUNDED_PENALTY
             spec.status = SpecStatus.NEEDS_REVIEW
 
