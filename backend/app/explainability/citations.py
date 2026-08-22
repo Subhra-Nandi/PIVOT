@@ -26,7 +26,7 @@ import itertools
 
 from app.explainability.snippets import make_snippet
 from app.ingestion.models import IngestedDocument
-from app.schemas.product import ProductRecord, Source, SourceType
+from app.schemas.product import ProductRecord, Source, SourceType, SpecStatus
 
 
 def resolve_citations(record: ProductRecord, doc: IngestedDocument) -> ProductRecord:
@@ -62,7 +62,9 @@ def resolve_citations(record: ProductRecord, doc: IngestedDocument) -> ProductRe
         block_id = spec.source.reference
         block = next((b for b in doc.blocks if b.block_id == block_id), None)
         if block is None:
-            continue  # cited a block that doesn't exist in this document
+            spec.status = SpecStatus.NEEDS_REVIEW
+            spec.confidence = min(spec.confidence, 0.3)
+            continue
 
         if block_id not in resolved_by_block:
             resolved_by_block[block_id] = Source(
