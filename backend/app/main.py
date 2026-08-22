@@ -20,11 +20,12 @@ import os
 import tempfile
 from typing import Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.commerce import map_to_all
+from app.explainability import merge_records
 from app.extraction.extractor import ExtractionError, extract_product
 from app.ingestion.catalog import ingest_catalog
 from app.ingestion.docx_parser import parse_docx
@@ -99,6 +100,42 @@ class CommerceRequest(BaseModel):
     record: ProductRecord
 
 
+async def _extract_uploaded_file(file: UploadFile) -> dict:
+    """Run one upload through the same ingestion paths as /extract/file."""
+    suffix = os.path.splitext(file.filename or "")[1].lower()
+    if suffix not in {".pdf", ".docx", ".csv", ".xlsx", ".xlsm"}:
+        raise HTTPException(400, f"Unsupported file type '{suffix}'. Use .pdf, .docx, .csv, .xlsx, or .xlsm.")
+    contents = await file.read()
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
+    filename = os.path.basename(file.filename or tmp_path)
+    try:
+        if suffix in {".csv", ".xlsx", ".xlsm"}:
+            result = ingest_catalog(tmp_path, source_filename=filename)
+            if not result.records:
+                raise HTTPException(400, {
+                    "message": "The file was parsed successfully, but it does not appear to contain a product catalog.",
+                    "reason": "No product identity column could be identified.",
+                    "detected_headers": list(result.column_stats.mapping_details),
+                })
+            return {"filename": filename, "items": result.records, "source": None, "source_format": result.source_format,
+                    "row_warnings": result.row_warnings, "warnings": result.warnings,
+                    "column_mapping": result.column_stats.mapping_details,
+                    "catalog": {"sheet": result.sheet, "header_row": result.header_row,
+                                "total_rows": result.total_rows, "accepted_rows": len(result.records),
+                                "rejected_rows": result.rejected_rows}}
+        doc = parse_pdf(tmp_path) if suffix == ".pdf" else parse_docx(tmp_path)
+        doc.source_filename = filename
+        try:
+            record = extract_product(doc)
+        except (ExtractionError, LLMError) as exc:
+            raise HTTPException(502, f"Extraction failed for {filename}: {exc}") from exc
+        return {"filename": filename, "items": [record], "source": _source_payload(doc), "catalog": None}
+    finally:
+        os.unlink(tmp_path)
+
+
 @app.get("/health")
 def health():
     """Azure App Service (and any uptime check) pings this to confirm the
@@ -117,57 +154,41 @@ async def extract_from_file(file: UploadFile = File(...)):
     path and therefore the one that can raise `ExtractionError`/`LLMError`
     if every configured provider fails or no API key is set.
     """
-    suffix = os.path.splitext(file.filename or "")[1].lower()
-    if suffix not in {".pdf", ".docx", ".csv", ".xlsx", ".xlsm"}:
-        raise HTTPException(400, f"Unsupported file type '{suffix}'. Use .pdf, .docx, .csv, .xlsx, or .xlsm.")
-
-    contents = await file.read()
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(contents)
-        tmp_path = tmp.name
-
-    try:
-        if suffix in {".csv", ".xlsx", ".xlsm"}:
-            result = ingest_catalog(tmp_path, source_filename=os.path.basename(file.filename or tmp_path))
-            if not result.records:
-                raise HTTPException(400, {
-                    "message": "The file was parsed successfully, but it does not appear to contain a product catalog.",
-                    "reason": "No product identity column could be identified.",
-                    "detected_headers": list(result.column_stats.mapping_details),
-                    "expected_examples": ["Product Name", "Name", "Title", "Item", "SKU", "MPN"],
-                    "warnings": result.warnings,
-                })
-
-            first_record = result.records[0]
+    extracted = await _extract_uploaded_file(file)
+    first_record = extracted["items"][0]
+    if extracted.get("source_format"):
             return {
                 "product_record": first_record.model_dump(mode="json"),
                 "commerce": map_to_all(first_record),
-                "source_format": result.source_format,
-                "total_rows": result.total_rows,
-                "row_warnings": result.row_warnings,
-                "catalog": {"sheet": result.sheet, "header_row": result.header_row, "total_rows": result.total_rows, "accepted_rows": len(result.records), "rejected_rows": result.rejected_rows},
-                "column_mapping": result.column_stats.mapping_details,
-                "warnings": result.warnings,
+                "catalog": extracted["catalog"],
+                "source_format": extracted["source_format"], "total_rows": extracted["catalog"]["total_rows"],
+                "row_warnings": extracted["row_warnings"], "warnings": extracted["warnings"],
+                "column_mapping": extracted["column_mapping"],
                 "items": [
-                    {"product_record": record.model_dump(mode="json"), "commerce": map_to_all(record)}
-                    for record in result.records
+                    {"product_record": record.model_dump(mode="json"), "commerce": map_to_all(record)} for record in extracted["items"]
                 ],
             }
+    return {"product_record": first_record.model_dump(mode="json"), "source": extracted["source"], "commerce": map_to_all(first_record)}
 
-        doc = parse_pdf(tmp_path) if suffix == ".pdf" else parse_docx(tmp_path)
-        doc.source_filename = os.path.basename(file.filename or doc.source_filename)
-        try:
-            record = extract_product(doc)
-        except (ExtractionError, LLMError) as exc:
-            raise HTTPException(502, f"Extraction failed: {exc}") from exc
 
-        return {
-            "product_record": record.model_dump(mode="json"),
-            "source": _source_payload(doc),
-            "commerce": map_to_all(record),
-        }
-    finally:
-        os.unlink(tmp_path)
+@app.post("/compare/files")
+async def compare_files(
+    source_a: UploadFile = File(...), source_b: UploadFile = File(...),
+    source_a_index: int | None = Form(None), source_b_index: int | None = Form(None),
+):
+    """Extract two uploads independently, then compare via canonical merge_records()."""
+    extracted = [await _extract_uploaded_file(source_a), await _extract_uploaded_file(source_b)]
+    indices = [source_a_index, source_b_index]
+    if any(index is None for index in indices) and any(len(item["items"]) > 1 for item in extracted):
+        return {"requires_selection": True, "sources": [{"filename": item["filename"], "items": [r.model_dump(mode="json") for r in item["items"]], "catalog": item["catalog"]} for item in extracted]}
+    selected = []
+    for item, index in zip(extracted, indices):
+        selected.append(item["items"][index or 0])
+    merged = merge_records(selected)
+    return {"requires_selection": False, "product_record": merged.model_dump(mode="json"),
+            "source_records": [{"filename": item["filename"], "product_record": record.model_dump(mode="json")}
+                               for item, record in zip(extracted, selected)],
+            "commerce": map_to_all(merged)}
 
 
 @app.post("/extract/url")
