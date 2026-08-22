@@ -7,7 +7,7 @@ export default function VerifiedRecord({ record, statusFilter, onSnippetHover, o
     spec.source ? sourcesUsed.find((s) => s.id === spec.source.reference) : undefined;
 
   const specs = record.specifications ?? [];
-  const conflictAttributes = new Set((record.validation?.conflicts ?? []).map((conflict) => conflict.attribute));
+  const conflicts = record.validation?.conflicts ?? [];
   const visibleSpecs = statusFilter ? specs.filter((s) => s.status === statusFilter) : specs;
 
   return (
@@ -38,7 +38,7 @@ export default function VerifiedRecord({ record, statusFilter, onSnippetHover, o
               key={`${spec.attribute}-${i}`}
               spec={spec}
               resolvedSource={resolveSource(spec)}
-              isConflict={conflictAttributes.has(spec.attribute)}
+              conflicts={conflicts}
               onSnippetHover={onSnippetHover}
             />
           ))
