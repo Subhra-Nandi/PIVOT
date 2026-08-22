@@ -153,7 +153,7 @@ export default function App() {
   const specs = record.specifications ?? [];
   const grounded = specs.filter((s) => s.status === 'extracted').length;
   const unverified = specs.filter((s) => s.status === 'inferred').length;
-  const conflictCount = record.validation?.conflicts?.length ?? 0;
+  const conflictCount = specs.filter((s) => s.status === 'needs_review').length;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
@@ -179,7 +179,7 @@ export default function App() {
                 ⚡ Live Backend File Extraction
               </p>
               <p className="font-mono text-xs text-zinc-400">
-                Upload a custom PDF or CSV file to send directly to your live API.
+                Upload a product datasheet or supplier catalog — PDF, DOCX, CSV, XLSX.
               </p>
             </div>
 
