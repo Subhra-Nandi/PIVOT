@@ -155,8 +155,9 @@ export default function App() {
   const record = example.product_record ?? {};
   const specs = record.specifications ?? [];
   const grounded = specs.filter((s) => s.status === 'extracted').length;
-  const unverified = specs.filter((s) => s.status === 'inferred').length;
-  const conflictCount = specs.filter((s) => s.status === 'needs_review').length;
+  const conflictAttributes = new Set((record.validation?.conflicts ?? []).map((conflict) => conflict.attribute));
+  const unverified = specs.filter((s) => (s.status === 'inferred' || s.status === 'needs_review') && !conflictAttributes.has(s.attribute)).length;
+  const conflictCount = record.validation?.conflicts?.length ?? 0;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
