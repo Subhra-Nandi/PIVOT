@@ -7,7 +7,7 @@ const BAR_COLOR = {
   needs_review: 'bg-rose-400',
 };
 
-export default function SpecRow({ spec, resolvedSource, onSnippetHover }) {
+export default function SpecRow({ spec, resolvedSource, onSnippetHover, isConflict }) {
   const [open, setOpen] = useState(false);
   const hasCitation = Boolean(spec.source && resolvedSource && spec.status !== 'needs_review');
   const searchText = `${spec.value}${spec.unit ? ` ${spec.unit}` : ''}`;
@@ -47,7 +47,7 @@ export default function SpecRow({ spec, resolvedSource, onSnippetHover }) {
             {(spec.confidence * 100).toFixed(0)}%
           </span>
         </span>
-        <StatusBadge status={spec.status} />
+        <StatusBadge status={spec.status} label={isConflict ? 'Conflict' : undefined} />
       </button>
 
       {open && hasCitation && (
