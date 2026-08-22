@@ -187,6 +187,8 @@ def _read_xlsx_rows(path: str) -> tuple[list[str], list[dict[str, str]], str, in
     _, sheet, header_index, headers = selected
     rows = []
     for raw_row in sheet.iter_rows(min_row=header_index + 2, values_only=True):
+        if not any(value is not None and str(value).strip() for value in raw_row):
+            continue
         # Cells are typed by openpyxl (float/int/str/None) — stringify so
         # downstream mapping logic matches the CSV path exactly.
         row = {
