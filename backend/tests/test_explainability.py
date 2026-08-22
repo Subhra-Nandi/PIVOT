@@ -230,6 +230,23 @@ def test_snippet_truncates_to_max_len(spec_sheet_pdf):
     assert len(snippet) <= 15
 
 
+def test_snippet_centers_matching_evidence():
+    block = ContentBlock(
+        block_id="b1", type=BlockType.TEXT,
+        text="Specification | Rated Value | Body material | Stainless steel | Sensing face | PBT polymer",
+    )
+    snippet = make_snippet(block, max_len=40, needle="Stainless steel")
+    assert "Stainless steel" in snippet
+    assert len(snippet) <= 40
+
+
+def test_snippet_falls_back_to_beginning_without_match():
+    block = ContentBlock(block_id="b1", type=BlockType.TEXT, text="Alpha " * 50)
+    snippet = make_snippet(block, max_len=20, needle="missing")
+    assert snippet.startswith("Alpha")
+    assert len(snippet) <= 20
+
+
 def _record_with_spec(product_name, attribute, value, source_id, source_ref):
     return ProductRecord(
         product_name=product_name,
