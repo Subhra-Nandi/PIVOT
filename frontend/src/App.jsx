@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import TrustHud from './components/TrustHud';
-import DemoBar from './components/DemoBar';
 import SourceInspector from './components/SourceInspector';
 import VerifiedRecord from './components/VerifiedRecord';
 import CommerceOutput from './components/CommerceOutput';
@@ -11,10 +10,7 @@ import MultiSourceCompare from './components/MultiSourceCompare';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pivot-backend-8ydb.onrender.com';
 
 export default function App() {
-  const [index, setIndex] = useState(null);
-  const [selectedId, setSelectedId] = useState(null);
   const [baseExample, setBaseExample] = useState(null);
-  const [error, setError] = useState(null);
   const [overridesByExample, setOverridesByExample] = useState({});
   const [statusFilter, setStatusFilter] = useState(null); // null | 'extracted' | 'inferred' | 'needs_review'
   const [activeSnippet, setActiveSnippet] = useState(null);
@@ -23,42 +19,7 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
-    // 1. Fetch demo index on mount — do NOT auto-select an entry. The UI
-  // should open empty (upload-first), not pre-loaded with fixture data;
-  // a demo preset is something the person chooses, not a default they
-  // have to notice and back out of.
-  useEffect(() => {
-    fetch('/demo-data/index.json')
-      .then((r) => {
-        if (!r.ok) throw new Error(`index.json: ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setIndex(data);
-      })
-      .catch((e) => setError(e.message));
-  }, []);
-
-  // 2. Load demo data when selecting a preset
-  useEffect(() => {
-    if (!index || !selectedId || selectedId === 'custom_live_upload') return;
-    const entry = index.find((e) => e.example_id === selectedId);
-    if (!entry) return;
-
-    setStatusFilter(null);
-    setActiveSnippet(null);
-    setUploadError(null);
-
-    fetch(`/demo-data/${entry.file}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`${entry.file}: ${r.status}`);
-        return r.json();
-      })
-      .then(setBaseExample)
-      .catch((e) => setError(e.message));
-  }, [index, selectedId]);
-
-  // 3. Fold accepted conflict resolutions onto baseExample
+  // Fold accepted conflict resolutions onto the live extraction result.
   const example = useMemo(() => {
     if (!baseExample) return null;
     const overrides = overridesByExample[baseExample.example_id] ?? {};
@@ -126,7 +87,6 @@ export default function App() {
   ...liveData,
 };
 
-      setSelectedId('custom_live_upload');
       setBaseExample(formattedData);
       setStatusFilter(null);
       setActiveSnippet(null);
@@ -136,26 +96,6 @@ export default function App() {
     } finally {
       setIsUploading(false);
     }
-  }
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-6">
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-6 py-4 font-mono text-sm text-rose-400">
-          Couldn&rsquo;t load demo data: {error}
-        </div>
-      </div>
-    );
-  }
-
-  const isDemoLoading = selectedId && selectedId !== 'custom_live_upload' && !baseExample;
-
-  if (index === null || isDemoLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="font-mono text-sm text-zinc-500">Loading inspection report&hellip;</div>
-      </div>
-    );
   }
 
   const record = example?.product_record ?? null;
@@ -173,12 +113,6 @@ export default function App() {
 
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
         <MultiSourceCompare apiBaseUrl={API_BASE_URL} />
-        <DemoBar
-          examples={index}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-
         {/* Live Upload Box */}
         <div className="mt-6 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-lime-400/50">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
