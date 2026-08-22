@@ -14,6 +14,7 @@ useful for explaining the validation story to judges.
 from __future__ import annotations
 
 from app.ingestion.models import ContentBlock
+from app.schemas.attributes import resolve_attribute
 from app.schemas.product import ProductRecord, SourceType, SpecStatus
 from app.validation.checks import CheckOutcome, run_attribute_check
 from app.validation.groundedness import check_groundedness, find_block
@@ -46,6 +47,10 @@ def _score_spec(spec, blocks: list[ContentBlock] | None) -> float:
     confidence = _BASE_BY_STATUS.get(spec.status, 0.5) * source_trust
 
     outcome, _reason = run_attribute_check(spec)
+    if resolve_attribute(spec.attribute) is None:
+        # Source-grounded custom fields are retained, but absence of a
+        # deterministic validator means they are unverified, not trusted.
+        spec.status = SpecStatus.NEEDS_REVIEW
     if outcome == CheckOutcome.PASS:
         confidence += _CHECK_PASS_BOOST
     elif outcome == CheckOutcome.FAIL:
