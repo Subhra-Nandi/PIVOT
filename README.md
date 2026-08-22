@@ -1,260 +1,251 @@
 # PIVOT
 
-**Product Intelligence & Validation for Optimized Trade**
+### Product Intelligence & Validation for Optimized Trade
 
-AI-powered product intelligence for industrial commerce: turn scattered product
-data (PDFs, catalogs, websites) into structured, validated, commerce-ready
-product records — with every field traceable back to its source.
-> Team project — Hack2Skill
+**Turn messy supplier PDFs, catalogs, and web listings into commerce-ready product data — with every field cited, scored, and validated. No hallucinated specs. No black box.**
 
-## Status
+[![Live App](https://img.shields.io/badge/Live_App-pivot--hhifcq9kd-3B82F6?style=for-the-badge&logo=vercel&logoColor=white)](https://pivot-hhifcq9kd-subhra-nandis-projects.vercel.app/)
+[![API](https://img.shields.io/badge/API-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://pivot-backend-8ydb.onrender.com/health)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Tests](https://img.shields.io/badge/Tests-194_passing-2F6B4F?style=for-the-badge&logo=pytest&logoColor=white)](#quickstart--developer-setup)
+[![Gemini 2.5](https://img.shields.io/badge/LLM-Gemini_2.5_Flash-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 
-**Phase 0 through Phase 6 complete.** The domain-agnostic product schema and
-the validation attribute dictionary are in place and tested (Phase 0). The
-document ingestion pipeline — PDF and DOCX parsing into a common structured
-intermediate format, with page/section references preserved for later
-citation — is also in place and tested (Phase 1). Phase 2 adds three more
-ingestion paths: CSV/XLSX catalog batches mapped directly to product records
-(no LLM), single-product URL scraping (static fetch with a Firecrawl
-fallback for JS-heavy/bot-walled sites), and catalog-listing crawling that
-discovers product links and enriches them page by page. Phase 3 closes the
-loop for the two source types that need an LLM (documents and web pages):
-schema-guided extraction turns an `IngestedDocument` into a real
-`ProductRecord`, via a swappable Gemini → Groq → GitHub Models fallback
-chain. Phase 4 adds the validation layer: every specification is checked
-against the attribute dictionary (range/pattern/enum), cross-checked for
-groundedness against its cited source when one is available, and given a
-real confidence score instead of a flat placeholder — rolled up into a
-per-record `overall_confidence`. Phase 5 closes the explainability loop:
-every LLM-extracted field's citation is resolved from a raw block reference
-into a real `Source` entry with page/section and a snippet pulled from the
-actual source text (not just whatever the model claimed), and records from
-multiple sources for the same product can now be merged, with disagreeing
-attributes flagged `needs_review` and recorded as a `Conflict` instead of
-silently picked. Phase 6 closes the commerce-facing side: every
-`ProductRecord` maps onto three standards at once — Schema.org `Product`
-JSON-LD, a Google Shopping feed item, and an ETIM-style industrial
-classification block — each with its own validator reporting exactly which
-required/recommended fields are still missing, rather than a single
-pass/fail. The FastAPI `/extract` endpoint and the React demo UI arrive in
-later phases — see the [Roadmap](#roadmap).
+> Built for the **Hack2Skill Hackathon** — Industrial Commerce track
 
-## Prerequisites
+---
 
-- **Python 3.12+**
-- **Git**
-- Node.js — only needed once the React frontend lands (Phase 7), not yet.
+## The Problem
 
-## Getting started (backend)
+Industrial e-commerce runs on dirty data. A supplier sends a PDF datasheet, a spreadsheet with inconsistent columns, or a product page that changes layout every quarter — and somewhere between "raw spec" and "live listing," someone has to manually retype voltage ratings, tensile strengths, and IP codes into a catalog. Get one digit wrong on a tensile strength spec, and it's not a typo — it's a procurement error that fails a part in the field.
 
-All backend work happens in `backend/`.
+Throwing an LLM at the problem doesn't fix this. It changes *who's* wrong — a model that confidently invents a plausible-looking spec is worse than a blank field, because a blank field gets checked and a hallucinated one doesn't.
 
+## The Solution
+
+**PIVOT ingests unstructured product data, extracts it with a schema-guided LLM, and then refuses to trust its own output** — every value is checked against physical unit rules, checked for whether it's actually grounded in the source text, cited down to the page and snippet it came from, and cross-checked against every other source that mentions the same product. What comes out the other end isn't a JSON blob you have to double-check — it's a record you can audit field-by-field, exported directly into the commerce feed formats procurement systems already expect.
+
+---
+
+## Core Engineering & Technical Differentiators
+
+Most teams can get extraction working. The bet PIVOT makes is that **validation and explainability are the actual product** — here's what backs that up:
+
+| # | Differentiator | What it actually does |
+|---|---|---|
+| 🔗 | **Resilient Fallback Chain** | One `LLMClient` interface, three providers behind it (Gemini → Groq → GitHub Models). A rate limit on one provider mid-demo doesn't take the pipeline down — it just moves to the next link in the chain, automatically. |
+| 🧪 | **Groundedness Check** | Every extracted value is checked for word-overlap against the exact source block the model claims it came from. A value the model can't actually point to in the source gets demoted to `needs_review` — not silently trusted. |
+| 📎 | **Citation Resolution** | The LLM cites a raw block ID during extraction (`b0007`); PIVOT resolves that into a real `Source` record with page number, section, and a verbatim text snippet — pulled from the actual document, not the model's paraphrase of it. |
+| ⚖️ | **Multi-Source Conflict Engine** | Merge a PDF spec sheet and a scraped listing page for the same product, and if they disagree — `400 MPa` vs. `600 MPa` — both get flagged `needs_review` and recorded as a `Conflict`, with a one-click resolve-and-override in the UI. Nothing gets silently picked for you. |
+| 📤 | **3-in-1 Commerce Exporter** | One validated internal record, mapped to **Schema.org** (JSON-LD), **Google Shopping** (feed spec), and **ETIM-style** industrial classification — each with its own structural validation, so you can *demonstrate* standards compliance, not just claim it. |
+
+<details>
+<summary><strong>Full validation & explainability stack (click to expand)</strong></summary>
+
+- **Rule-based attribute validation** — SI unit conversion (`base_unit_of`, `convert_to_base`) plus pattern/range/enum checks per attribute, driven by a shared attribute dictionary so Phase 4 (validation) and Phase 6 (commerce export) can never silently disagree on what a valid `voltage_rating` looks like.
+- **Per-field confidence, not per-record** — a website-sourced field is scored differently than a document-sourced one; `overall_confidence` is a real rollup, not a placeholder.
+- **Idempotent citation resolution** — calling the resolver twice on the same record is a safe no-op; catalog-sourced records (already correctly cited at creation) pass through untouched.
+- **194 automated tests**, zero network/LLM calls required to run them — every provider SDK call is mocked or stubbed, so `pytest -q` is fully deterministic and safe to run anywhere, including a venue with no wifi.
+
+</details>
+
+---
+
+## Visual Architecture
+
+```mermaid
+flowchart LR
+    subgraph Ingestion["📥 Ingestion Layer"]
+        direction TB
+        PDF["PDF / DOCX"]
+        CSV["CSV / XLSX Catalog"]
+        WEB["Web Listing<br/>(static + Firecrawl fallback)"]
+    end
+
+    subgraph Extract["🧠 Schema-Guided LLM"]
+        direction TB
+        PROMPT["Prompt built from<br/>ProductRecord JSON Schema<br/>+ cited content blocks"]
+        LLM["Gemini 2.5 Flash<br/>↓ fallback ↓<br/>Groq → GitHub Models"]
+        PROMPT --> LLM
+    end
+
+    subgraph Validate["✅ Validation & Groundedness"]
+        direction TB
+        RULES["Attribute dictionary rules<br/>(unit / range / pattern / enum)"]
+        GROUND["Word-overlap<br/>groundedness check"]
+        CONF["Per-field<br/>confidence scoring"]
+        RULES --> GROUND --> CONF
+    end
+
+    subgraph Explain["📎 Citation & Conflict Resolution"]
+        direction TB
+        CITE["Block ID → real Source<br/>(page, section, snippet)"]
+        MERGE["Multi-source merge<br/>+ conflict detection"]
+        CITE --> MERGE
+    end
+
+    subgraph Export["📤 3-in-1 Commerce Export"]
+        direction TB
+        SCHEMA["Schema.org<br/>JSON-LD"]
+        GSHOP["Google Shopping<br/>Feed Item"]
+        ETIM["ETIM-style<br/>Classification"]
+    end
+
+    PDF --> PROMPT
+    CSV -.->|"already structured<br/>— LLM call skipped"| Validate
+    WEB --> PROMPT
+    LLM --> Validate
+    Validate --> Explain
+    Explain --> Export
+
+    style Ingestion fill:#131B2E,stroke:#334155,color:#F8FAFC
+    style Extract fill:#131B2E,stroke:#334155,color:#F8FAFC
+    style Validate fill:#131B2E,stroke:#334155,color:#F8FAFC
+    style Explain fill:#131B2E,stroke:#334155,color:#F8FAFC
+    style Export fill:#131B2E,stroke:#334155,color:#F8FAFC
 ```
+
+**Why CSV/XLSX skips the LLM entirely:** a spreadsheet is already structured — mapping columns straight to a `ProductRecord` is faster, cheaper, and has zero hallucination risk compared to routing already-clean data through a model. The LLM is reserved for the two source types that actually need it: unstructured documents and web pages.
+
+---
+
+## API & Data Quick Look
+
+<details open>
+<summary><strong>Raw input</strong> — one paragraph from a real PDF spec sheet</summary>
+
+```text
+ACS37800 Power Meter Module
+Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65.
+```
+
+</details>
+
+<details open>
+<summary><strong>Verified output</strong> — <code>POST /extract/file</code></summary>
+
+```json
+{
+  "product_record": {
+    "product_name": "ACS37800 Power Meter Module",
+    "brand": "SparkFun",
+    "specifications": [
+      {
+        "attribute": "voltage_rating",
+        "value": "5V",
+        "unit": "V",
+        "confidence": 0.95,
+        "status": "extracted",
+        "source": {
+          "type": "document",
+          "reference": "src-2",
+          "snippet": "Supply Voltage: 5V. Current Rating: 7.6A. IP Rating: IP65."
+        }
+      }
+    ],
+    "validation": {
+      "overall_confidence": 0.82,
+      "conflicts": []
+    },
+    "provenance": {
+      "sources_used": [
+        { "id": "src-2", "type": "document", "reference": "acs37800_datasheet.pdf", "page": 1 }
+      ]
+    }
+  },
+  "commerce": {
+    "schema_org":       { "document": { "...": "JSON-LD" }, "issues": [] },
+    "google_shopping":  { "document": { "...": "feed item" }, "issues": ["recommended: image is missing"] },
+    "industrial":       { "document": { "...": "ETIM-style" }, "issues": [] }
+  }
+}
+```
+
+Notice `source.reference` points at a real `Source` in `provenance.sources_used` — not a raw model claim. Click through it, and you get back the actual page and the actual snippet the value was pulled from.
+
+</details>
+
+---
+
+## Quickstart & Developer Setup
+
+```bash
+# 1. Clone
+git clone https://github.com/Subhra-Nandi/PIVOT.git
+cd PIVOT
+
+# 2. Configure environment
+cp backend/.env.example backend/.env
+# fill in GEMINI_API_KEY at minimum — Groq/GitHub Models are optional fallbacks
+
+# 3. Verify
 cd backend
-
-# 1. Create an isolated environment
-python -m venv .venv
-
-# 2. Activate it
-#    Windows (PowerShell):   .venv\Scripts\Activate.ps1
-#    Windows (cmd):          .venv\Scripts\activate.bat
-#    macOS / Linux:          source .venv/bin/activate
-
-# 3. Install dependencies
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# 4. Verify the setup
 pytest -q
 ```
 
-If you see `179 passed`, the schema layer, all three ingestion paths
-(documents, catalogs, web), LLM extraction, rule-based validation, the
-explainability layer, and the commerce schema mapping are all working and
-you're ready to build. The suite makes zero real network/LLM calls — every
-provider SDK call is mocked, same as the Firecrawl mocking from Phase 2.
-> **PowerShell blocks `Activate.ps1`?** Run once per terminal session: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` — or skip activation and call the venv Python directly: `.venv\Scripts\python.exe -m pytest -q`
+Expect `194 passed` — zero network calls required, every LLM call in the test suite is mocked.
 
-## Environment variables
+<details>
+<summary><strong>Run the full stack locally</strong></summary>
 
-The LLM extraction layer (Phase 3) uses free-tier providers behind one swappable
-interface: **Gemini** (primary) → **Groq** (fallback) → **GitHub Models** (tertiary).
-`app/config.py` loads `.env` automatically (via `python-dotenv`) the first time
-any app module is imported — you don't need to `export` anything yourself.
+```bash
+# Backend (from backend/, venv active)
+uvicorn app.main:app --reload --port 8000
 
-```
-# from the repo root
-cp .env.example .env        # Windows: copy .env.example .env
+# Frontend (separate terminal)
+cd frontend
+npm install
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env.local
+npm run dev
 ```
 
-Then fill in whatever keys you have. `.env` is gitignored — never commit it.
-Free keys come from:
+</details>
 
-- **Gemini** — Google AI Studio (aistudio.google.com/apikey); use Flash /
-  Flash-Lite, not Pro. **Only this one is required** to actually run
-  extraction (`extract_product()`) — Groq/GitHub Models are fallbacks for
-  when Gemini's quota runs out, and the pipeline works without them.
-  Current default model is `gemini-2.5-flash` — `gemini-2.0-flash` was
-  retired by Google and now 404s, so don't reuse an old key/model pairing
-  from another project.
-- **Groq** — console.groq.com (optional — fallback only)
-- **GitHub Models** — a GitHub personal access token (optional — fallback only)
-- **Firecrawl** — firecrawl.dev; only needed as a fallback for JS-heavy or
-  bot-walled product pages and for catalog-listing crawls. Single-page static
-  scraping and CSV/XLSX/PDF/DOCX ingestion work without it.
+<details>
+<summary><strong>⚠️ Render free-tier cold starts</strong></summary>
 
-You don't need any keys to run the schema, ingestion pipeline, and the test
-suite (LLM calls are mocked in tests). You need `GEMINI_API_KEY` to actually
-run `extract_product()` against a real document or web page.
+The live backend (`pivot-backend-8ydb.onrender.com`) runs on Render's free tier, which **spins down after 15 minutes of inactivity**. The first request after a period of idle time triggers a cold start that can take 30–60 seconds before the API responds — this is infrastructure behavior, not a bug in the pipeline. If you're demoing live, hit `/health` a minute or two beforehand to warm the container up, and lead with the CSV/catalog demo (no LLM call, always fast) before a PDF extraction.
 
-## Project structure
+</details>
 
-```
-PIVOT/
-├── backend/
-│   ├── app/
-│   │   ├── config.py               # loads .env once via python-dotenv; get_env() helper
-│   │   ├── schemas/
-│   │   │   ├── product.py          # ProductRecord — the single source of truth
-│   │   │   └── attributes.py       # attribute dictionary used for validation
-│   │   ├── ingestion/
-│   │   │   ├── models.py           # IngestedDocument / ContentBlock — intermediate format
-│   │   │   ├── pdf_parser.py       # PDF text + table extraction (pdfplumber)
-│   │   │   ├── docx_parser.py      # DOCX text + table extraction (python-docx)
-│   │   │   ├── base.py             # ingest_document() — PDF/DOCX dispatch entrypoint
-│   │   │   ├── catalog.py          # ingest_catalog() — CSV/XLSX → ProductRecord, no LLM
-│   │   │   ├── web_fetcher.py      # fetch_html() — static fetch + Firecrawl fallback
-│   │   │   ├── web_parser.py       # parse_html() — JSON-LD/tables/text → IngestedDocument
-│   │   │   ├── url_ingest.py       # ingest_url() — single-product-URL entrypoint + cache
-│   │   │   ├── catalog_crawler.py  # ingest_catalog_url() — listing discovery + enrichment
-│   │   │   └── utils.py            # shared parsing helpers
-│   │   ├── llm/
-│   │   │   ├── base.py             # LLMClient protocol + LLMError
-│   │   │   ├── gemini_client.py    # GeminiClient — primary provider
-│   │   │   ├── groq_client.py      # GroqClient — fallback
-│   │   │   ├── github_client.py    # GitHubModelsClient — tertiary fallback
-│   │   │   └── fallback.py         # FallbackLLMClient — tries each in order
-│   │   ├── extraction/
-│   │   │   ├── prompt.py           # build_extraction_prompt() — schema-guided prompt
-│   │   │   └── extractor.py        # extract_product() — IngestedDocument → ProductRecord
-│   │   ├── validation/
-│   │   │   ├── units.py            # convert_to_base() — fixed SI-prefix/imperial conversions
-│   │   │   ├── checks.py           # run_attribute_check() — NUMERIC_RANGE/PATTERN/ENUM dispatch
-│   │   │   ├── groundedness.py     # check_groundedness() — value vs. cited source block
-│   │   │   └── validator.py        # validate_record() — confidence scoring + overall rollup
-│   │   ├── explainability/
-│   │   │   ├── snippets.py         # make_snippet() — real source text, not the LLM's own claim
-│   │   │   ├── citations.py        # resolve_citations() — block_id → real Source.id + snippet
-│   │   │   └── merge.py            # merge_records() — multi-source merge + conflict detection
-│   │   └── commerce/
-│   │       ├── normalize.py        # shared unit/currency/availability normalization
-│   │       ├── schema_org.py       # to_schema_org() — Schema.org Product JSON-LD
-│   │       ├── google_shopping.py  # to_google_shopping() — Google Shopping feed item
-│   │       ├── industrial.py       # to_industrial_classification() — ETIM-style feature block
-│   │       └── mapping.py          # map_to_all() — runs all three + their validators at once
-│   ├── fixtures/
-│   │   ├── catalogs/               # committed demo_catalog.csv
-│   │   └── web/                    # committed raw HTML for the verified demo URLs
-│   ├── scripts/
-│   │   └── seed_web_cache.py       # pre-warms the web cache from fixtures before a demo
-│   ├── tests/                      # pytest suite guarding every layer above
-│   └── requirements.txt
-├── .env.example                    # copy to .env, add LLM/Firecrawl keys
-└── README.md
-```
+---
 
-`schemas/product.py` is the one file everything else derives from: FastAPI
-validates against it, the LLM extraction layer targets its JSON Schema, and the
-validation/explainability layers populate its confidence and source fields.
+## Business Impact & ROI
 
-`ingestion/base.py`'s `ingest_document(path)` is the entrypoint for file-based
-sources — it dispatches to the right parser by file extension and returns a
-normalized `IngestedDocument`, regardless of whether the source was a PDF or
-a DOCX. `ingest_catalog(path)` is a separate entrypoint for CSV/XLSX: a
-spreadsheet is already structured, so it maps columns straight to
-`ProductRecord` with no LLM call, rather than going through
-`IngestedDocument`. `ingest_url(url)` and `ingest_catalog_url(url)` cover the
-two web paths — a single product page, or a listing page whose product links
-get discovered once and enriched page by page.
+| Metric | Before PIVOT | With PIVOT |
+|---|---|---|
+| **Catalog onboarding time per SKU** | Hours to days (manual transcription + review) | Seconds to minutes |
+| **Spec traceability** | "Someone typed this in" | Exact page, section, and snippet, per field |
+| **Cross-source disagreement** | Silently picked by whoever entered it last | Explicitly flagged, side-by-side, human-resolved |
+| **Commerce feed compliance** | Manually re-formatted per channel | Auto-mapped to 3 standards, validated on export |
+| **Hallucinated spec risk** | Unbounded (nothing checks the LLM) | Grounded against source text or flagged `needs_review` |
 
-`extraction/extractor.py`'s `extract_product(doc)` is what turns an
-`IngestedDocument` (from PDF, DOCX, or a web page) into a real `ProductRecord`:
-it builds a schema-guided prompt (`extraction/prompt.py`) that includes the
-full `ProductRecord` JSON schema plus every content block tagged with its
-`block_id`/`page`/`section`, calls the LLM, validates the JSON response, and
-retries once on failure before raising. `ingest_catalog_url()`'s
-`CatalogResult.enriched` returns `list[ProductRecord]` — each discovered
-product page is scraped via `ingest_url()` and then run through
-`extract_product()`.
+**The real cost this targets isn't the labor of retyping a spec sheet — it's the procurement error that happens when nobody catches a wrong one.** A tensile strength off by 200 MPa isn't a data quality nit; it's a part that fails under load. PIVOT's bet is that the validation layer is worth more than the extraction layer, because extraction without validation just moves the error from a human's keyboard to a model's hallucination — same risk, faster.
 
-`llm/` is the provider layer behind `extract_product()`: one `LLMClient`
-interface (`complete(prompt) -> str`), three implementations (Gemini, Groq,
-GitHub Models), and a `FallbackLLMClient` that tries them in order so a
-rate limit on one provider doesn't require touching extraction code —
-just add the next provider's key.
+---
 
-`validation/validator.py`'s `validate_record(record, blocks=None)` is called
-by both producers of a `ProductRecord` — `ingest_catalog()` and
-`extract_product()` — right before they return. It runs every spec through
-`checks.py`'s attribute-dictionary rule (range/pattern/enum, using
-`units.py` for unit conversion first), and, when source `blocks` are
-available (LLM-sourced records only — a CSV cell has nothing further to
-check), `groundedness.py`'s word-overlap check that the value is actually
-present in the source block it cites. The result replaces the placeholder
-confidence written upstream and can demote a spec's status to
-`needs_review`; `Validation.overall_confidence` is the mean of all spec
-confidences on the record.
+## Hackathon & Team Credits
 
-`explainability/citations.py`'s `resolve_citations(record, doc)` closes a
-gap Phase 3 left open: the LLM cites the raw `block_id` it pulled a value
-from (e.g. `"b0007"`), but nothing turned that into a real `Source` entry —
-`Provenance.sources_used` held only one generic placeholder that didn't
-match any spec's citation. `resolve_citations()` mints one real `Source` per
-distinct cited block (with its actual page and a snippet pulled from the
-real source text, not the model's own claim) and rewrites every spec's
-reference to point at it. It runs as the last step inside `extract_product()`
-— after `validate_record()`, since Phase 4's groundedness check depends on
-the citation still being the raw block_id at that point. Catalog-sourced
-records are already correctly cited at creation time, so calling it there is
-always a safe no-op. `explainability/merge.py`'s `merge_records(records)`
-is the piece that finally populates `Validation.conflicts` — deferred by
-Phase 4 since every pipeline path produced one record from one source until
-now: pass records for the same product from multiple sources (a spec-sheet
-PDF, a scraped listing page) and any attribute they disagree on gets flagged
-`needs_review` on every contributing spec and recorded as a `Conflict`.
+<div align="center">
 
-`commerce/mapping.py`'s `map_to_all(record)` is Phase 6's single entrypoint —
-it calls all three mappers and returns each one's document plus its own
-validator's issue list. `schema_org.py` carries Phase 4/5's per-field
-confidence, status, and citation snippet through via Schema.org's own
-`additionalProperty` extension point, so the JSON-LD output demonstrates the
-trust story rather than discarding it. `google_shopping.py` targets Google's
-exact feed field names so the output needs no translation step, and
-deliberately omits (rather than guesses) any field PIVOT has no real signal
-for — `condition` and `google_product_category` chief among them — since a
-wrong value on a live feed gets a listing suspended. `industrial.py` outputs
-the feature/value/unit shape ETIM/UNSPSC-driven procurement catalogs expect,
-in SI base units via Phase 4's own conversion table, but leaves
-`class_code`/`feature_code` unset with an explanatory `classification_note`:
-real ETIM/UNSPSC codes come from licensed classification databases this
-pipeline has no access to, and a fabricated code would silently misfile the
-product downstream — worse than an honest gap.
+### 🏆 Built for the Hack2Skill Hackathon
 
-## Roadmap
+</div>
 
-- [x] **Phase 0** — Schema & stack
-- [x] **Phase 1** — Document ingestion (PDF / DOCX)
-- [x] **Phase 2** — CSV/XLSX catalog batch, single-product URL scrape, catalog-listing crawl
-- [x] **Phase 3** — Schema-guided LLM extraction (Gemini → Groq → GitHub Models)
-- [x] **Phase 4** — Validation layer (attribute-dictionary rules, groundedness, per-field confidence)
-- [x] **Phase 5** — Explainability (citation resolution, multi-source merge + conflict detection)
-- [x] **Phase 6** — Commerce schema mapping (Schema.org / Google Shopping / ETIM-style)
-- [ ] **Phase 7** — Demo UI (React)
-- [ ] **Phase 8** — Testing & pitch prep
+| Contributor | GitHub |
+|---|---|
+| **Subhra Nandi** | [@Subhra-Nandi](https://github.com/Subhra-Nandi) |
+| **Sneha Paul** | [@sneha-paul-2005](https://github.com/sneha-paul-2005) |
+| **Sayan** | [@sayan1506](https://github.com/sayan1506) |
+| **Somsubhra Nandi** | [@Somsubhra-Nandi](https://github.com/Somsubhra-Nandi) |
 
-The core differentiator — validation + explainability — is done: every
-extracted field carries a real, rule-earned confidence score (Phase 4) and a
-citation that resolves to an actual source with page/section/snippet, not
-just a claim (Phase 5). Multi-source disagreement is surfaced, not silently
-resolved. Phase 6 turns that trustworthy internal record into three
-recognized commerce formats, each self-reporting its own compliance gaps.
-What's left is a demo judges can see live (Phase 7).
+---
+
+<div align="center">
+
+**[Live App](https://pivot-hhifcq9kd-subhra-nandis-projects.vercel.app/)** · **[API Health](https://pivot-backend-8ydb.onrender.com/health)** · **[Repository](https://github.com/Subhra-Nandi/PIVOT)**
+
+</div>
