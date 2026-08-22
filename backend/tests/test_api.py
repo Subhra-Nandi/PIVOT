@@ -55,6 +55,30 @@ def test_extract_file_csv_returns_records_with_commerce_mapping():
     assert first["product_record"]["product_name"]
 
 
+def test_extract_file_csv_uses_original_filename_in_provenance(tmp_path):
+    catalog = tmp_path / "temporary-upload.csv"
+    catalog.write_text("Product Name,Brand,SKU,Price\nMotor,ABB,M001,1000\n", encoding="utf-8")
+    with catalog.open("rb") as file:
+        response = client.post("/extract/file", files={"file": ("supplier_catalog.csv", file, "text/csv")})
+    assert response.status_code == 200
+    body = response.json()
+    source = body["product_record"]["provenance"]["sources_used"][0]
+    assert source["reference"] == "supplier_catalog.csv"
+    assert "tmp" not in source["reference"]
+
+
+def test_extract_file_rejects_readable_non_product_catalog_with_diagnostics():
+    response = client.post(
+        "/extract/file",
+        files={"file": ("iris.csv", b"sepal_length,sepal_width,petal_length,species\n5.1,3.5,1.4,setosa\n", "text/csv")},
+    )
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "does not appear to contain a product catalog" in detail["message"]
+    assert detail["reason"] == "No product identity column could be identified."
+    assert detail["detected_headers"] == ["sepal_length", "sepal_width", "petal_length", "species"]
+
+
 def test_extract_file_rejects_unsupported_extension():
     response = client.post(
         "/extract/file",
