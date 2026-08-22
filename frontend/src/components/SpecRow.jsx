@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import StatusBadge from './StatusBadge';
+import { classifySpec } from '../lib/specClassification';
 
 const BAR_COLOR = {
   extracted: 'bg-emerald-400',
@@ -7,8 +8,9 @@ const BAR_COLOR = {
   needs_review: 'bg-rose-400',
 };
 
-export default function SpecRow({ spec, resolvedSource, onSnippetHover, isConflict }) {
+export default function SpecRow({ spec, resolvedSource, onSnippetHover, conflicts }) {
   const [open, setOpen] = useState(false);
+  const classification = classifySpec(spec, conflicts);
   const hasCitation = Boolean(spec.source && resolvedSource && spec.status !== 'needs_review');
   const searchText = `${spec.value}${spec.unit ? ` ${spec.unit}` : ''}`;
 
@@ -47,7 +49,7 @@ export default function SpecRow({ spec, resolvedSource, onSnippetHover, isConfli
             {(spec.confidence * 100).toFixed(0)}%
           </span>
         </span>
-        <StatusBadge status={spec.status} label={isConflict ? 'Conflict' : undefined} />
+        <StatusBadge classification={classification} />
       </button>
 
       {open && hasCitation && (
