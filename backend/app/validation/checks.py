@@ -72,7 +72,10 @@ def _check_numeric_range(spec: Specification, attr: AttributeSpec) -> tuple[Chec
 def _check_pattern(spec: Specification, attr: AttributeSpec) -> tuple[CheckOutcome, str]:
     if not attr.pattern:
         return CheckOutcome.UNVERIFIABLE, f"no pattern defined for {attr.attribute}"
-    if re.match(attr.pattern, spec.value.strip()):
+    value = spec.value.strip()
+    if attr.attribute == "thread_size":
+        value = re.sub(r"\s*[×x]\s*", "x", value, flags=re.IGNORECASE)
+    if re.match(attr.pattern, value):
         return CheckOutcome.PASS, f"'{spec.value}' matches expected format"
     return CheckOutcome.FAIL, f"'{spec.value}' does not match expected format for {attr.attribute}"
 
