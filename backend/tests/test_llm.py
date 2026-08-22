@@ -69,6 +69,45 @@ def test_gemini_client_wraps_sdk_error(monkeypatch):
         GeminiClient().complete("prompt")
 
 
+def test_gemini_retries_transient_error_then_succeeds(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr("app.llm.gemini_client.time.sleep", lambda _: None)
+    from google import genai
+    class Temporary503(Exception):
+        status_code = 503
+    class Models:
+        calls = 0
+        def generate_content(self, model, contents):
+            self.calls += 1
+            if self.calls < 3:
+                raise Temporary503()
+            return type("R", (), {"text": "recovered"})()
+    models = Models()
+    monkeypatch.setattr(genai, "Client", lambda api_key: type("C", (), {"models": models})())
+    assert GeminiClient().complete("prompt") == "recovered"
+    assert models.calls == 3
+
+
+def test_gemini_permanent_error_is_not_retried(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    sleeps = []
+    monkeypatch.setattr("app.llm.gemini_client.time.sleep", sleeps.append)
+    from google import genai
+    class Permanent404(Exception):
+        status_code = 404
+    class Models:
+        calls = 0
+        def generate_content(self, model, contents):
+            self.calls += 1
+            raise Permanent404()
+    models = Models()
+    monkeypatch.setattr(genai, "Client", lambda api_key: type("C", (), {"models": models})())
+    with pytest.raises(LLMError):
+        GeminiClient().complete("prompt")
+    assert models.calls == 1
+    assert sleeps == []
+
+
 def test_gemini_client_raises_on_empty_response(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
 
