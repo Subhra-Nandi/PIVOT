@@ -96,7 +96,10 @@ export default function App() {
         let detail = `Backend request failed with status ${response.status}`;
         try {
           const body = await response.json();
-          detail = body.detail || body.message || detail;
+          const structured = body.detail;
+          detail = typeof structured === 'object'
+            ? `${structured.message || 'Catalog could not be processed'}${structured.detected_headers?.length ? ` Detected columns: ${structured.detected_headers.join(', ')}` : ''}`
+            : (structured || body.message || detail);
         } catch { /* non-JSON response */ }
         throw new Error(detail);
       }
