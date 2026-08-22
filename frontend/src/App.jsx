@@ -22,7 +22,10 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
-  // 1. Fetch demo index on mount
+    // 1. Fetch demo index on mount — do NOT auto-select an entry. The UI
+  // should open empty (upload-first), not pre-loaded with fixture data;
+  // a demo preset is something the person chooses, not a default they
+  // have to notice and back out of.
   useEffect(() => {
     fetch('/demo-data/index.json')
       .then((r) => {
@@ -31,7 +34,6 @@ export default function App() {
       })
       .then((data) => {
         setIndex(data);
-        if (data.length > 0) setSelectedId(data[0].example_id);
       })
       .catch((e) => setError(e.message));
   }, []);
