@@ -138,6 +138,16 @@ def _choose_header(rows: list[list], limit: int = 25) -> tuple[int, list[str]]:
         if score and any(values[j] for j in range(len(values))):
             candidates.append((score, index, values))
     if not candidates:
+        # Preserve a structurally readable header for diagnostics even when
+        # none of its fields are product attributes (for example Iris data).
+        readable = [
+            (sum(1 for value in row if str(value).strip()), -index, index, row)
+            for index, row in enumerate(rows[:limit])
+            if sum(1 for value in row if str(value).strip()) >= 2
+        ]
+        if readable:
+            _, _, index, values = max(readable)
+            return index, ["" if v is None else str(v).strip() for v in values]
         return 0, []
     _, index, values = max(candidates, key=lambda item: (item[0], -item[1]))
     return index, values
@@ -306,7 +316,7 @@ def _row_to_record(
     )
 
 
-def ingest_catalog(path: str) -> CatalogIngestResult:
+def ingest_catalog(path: str, source_filename: str | None = None) -> CatalogIngestResult:
     """Parse a CSV or XLSX catalog file straight into `ProductRecord`s.
 
     No LLM call — every column is mapped deterministically via core-field
@@ -316,7 +326,7 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
     if not os.path.isfile(path):
         raise FileNotFoundError(f"No such file: {path}")
 
-    filename = os.path.basename(path)
+    filename = source_filename or os.path.basename(path)
     _, ext = os.path.splitext(path)
     ext = ext.lower()
 
