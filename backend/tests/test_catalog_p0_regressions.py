@@ -76,6 +76,25 @@ def test_xlsx_preamble_and_non_active_sheet(tmp_path):
     assert result.records[0].identifiers.sku == "M1"
 
 
+def test_xlsx_blank_separator_rows_are_ignored(tmp_path):
+    path = tmp_path / "catalog.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["Product Name", "SKU"])
+    ws.append(["Motor A", "M1"])
+    ws.append([None, None])
+    ws.append(["Motor B", "M2"])
+    ws.append(["", ""])
+    wb.save(path)
+
+    result = ingest_catalog(str(path))
+
+    assert result.total_rows == 2
+    assert result.rejected_rows == 0
+    assert result.row_warnings == []
+    assert [record.product_name for record in result.records] == ["Motor A", "Motor B"]
+
+
 def test_xlsm_is_accepted(tmp_path):
     path = tmp_path / "catalog.xlsm"
     wb = Workbook()
