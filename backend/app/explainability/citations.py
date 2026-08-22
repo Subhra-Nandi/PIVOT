@@ -77,7 +77,7 @@ def resolve_citations(record: ProductRecord, doc: IngestedDocument) -> ProductRe
 
         source = resolved_by_block[block_id]
         spec.source.reference = source.id
-        spec.source.snippet = make_snippet(block)
+        spec.source.snippet = make_snippet(block, needle=spec.value)
 
     # Keep any source still cited (catalog's own, or one from a prior call);
     # drop the old single-placeholder Source only when something more
