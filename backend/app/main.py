@@ -128,9 +128,15 @@ async def extract_from_file(file: UploadFile = File(...)):
 
     try:
         if suffix in {".csv", ".xlsx", ".xlsm"}:
-            result = ingest_catalog(tmp_path)
+            result = ingest_catalog(tmp_path, source_filename=os.path.basename(file.filename or tmp_path))
             if not result.records:
-                raise HTTPException(400, "No valid product records found in catalog file.")
+                raise HTTPException(400, {
+                    "message": "The file was parsed successfully, but it does not appear to contain a product catalog.",
+                    "reason": "No product identity column could be identified.",
+                    "detected_headers": list(result.column_stats.mapping_details),
+                    "expected_examples": ["Product Name", "Name", "Title", "Item", "SKU", "MPN"],
+                    "warnings": result.warnings,
+                })
 
             first_record = result.records[0]
             return {
