@@ -158,18 +158,18 @@ export default function App() {
     );
   }
 
-  const record = example.product_record ?? {};
-  const specs = record.specifications ?? [];
-  const counts = summarizeSpecs(specs, record.validation?.conflicts ?? []);
+  const record = example?.product_record ?? null;
+  const specs = record?.specifications ?? [];
+  const counts = record ? summarizeSpecs(specs, record.validation?.conflicts ?? []) : null;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
-      <TrustHud
-        overallConfidence={record.validation?.overall_confidence}
-        counts={counts}
-        activeFilter={statusFilter}
-        onFilterChange={setStatusFilter}
-      />
+      {record && <TrustHud
+          overallConfidence={record.validation?.overall_confidence}
+          counts={counts}
+          activeFilter={statusFilter}
+          onFilterChange={setStatusFilter}
+        />}
 
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
         <MultiSourceCompare apiBaseUrl={API_BASE_URL} />
@@ -218,22 +218,22 @@ export default function App() {
           )}
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SourceInspector
-            label={example.raw_input?.label || 'Source Input'}
-            text={example.raw_input?.text || ''}
-            activeSnippet={activeSnippet}
-          />
-          <VerifiedRecord
-            record={record}
-            statusFilter={statusFilter}
-            activeSnippet={activeSnippet}
-            onSnippetHover={setActiveSnippet}
-            onResolveConflict={handleResolveConflict}
-          />
-        </div>
+        {record && <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <SourceInspector
+              label={example.raw_input?.label || 'Source Input'}
+              text={example.raw_input?.text || ''}
+              activeSnippet={activeSnippet}
+            />
+            <VerifiedRecord
+              record={record}
+              statusFilter={statusFilter}
+              activeSnippet={activeSnippet}
+              onSnippetHover={setActiveSnippet}
+              onResolveConflict={handleResolveConflict}
+            />
+          </div>}
 
-        {example.items?.length > 1 && (
+        {example?.items?.length > 1 && (
           <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
             <div className="mb-3 font-mono text-sm text-zinc-300">{example.items.length} products detected</div>
             <div className="flex max-h-48 flex-wrap gap-2 overflow-auto">
@@ -248,9 +248,9 @@ export default function App() {
           </div>
         )}
 
-        <div className="mt-6">
-          <CommerceOutput commerce={example.commerce} />
-        </div>
+        {record && <div className="mt-6">
+            <CommerceOutput commerce={example.commerce} />
+          </div>}
       </main>
     </div>
   );
