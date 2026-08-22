@@ -148,7 +148,9 @@ export default function App() {
     );
   }
 
-  if (!baseExample) {
+  const isDemoLoading = selectedId && selectedId !== 'custom_live_upload' && !baseExample;
+
+  if (index === null || isDemoLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
         <div className="font-mono text-sm text-zinc-500">Loading inspection report&hellip;</div>
