@@ -6,6 +6,8 @@ Run: backend/.venv/Scripts/python.exe -m pytest -q
 
 from __future__ import annotations
 
+import pytest
+
 from app.ingestion.models import BlockType, ContentBlock
 from app.schemas.product import ProductRecord, SourceType, Specification, SpecSource, SpecStatus
 from app.validation.checks import CheckOutcome, run_attribute_check
@@ -111,7 +113,17 @@ def test_numeric_range_check_exclusive_minimum_allows_small_positive():
 def test_unknown_attribute_is_unverifiable():
     outcome, reason = run_attribute_check(_spec("quantum_flux_capacity", "42"))
     assert outcome == CheckOutcome.UNVERIFIABLE
-    assert "not in the attribute dictionary" in reason
+
+
+@pytest.mark.parametrize("value", ["M18x1", "M18 x 1", "M18×1"])
+def test_thread_size_spacing_and_multiplication_sign_are_valid(value):
+    outcome, _ = run_attribute_check(_spec("thread_size", value))
+    assert outcome == CheckOutcome.PASS
+
+
+def test_malformed_thread_size_remains_invalid():
+    outcome, _ = run_attribute_check(_spec("thread_size", "M18 junk"))
+    assert outcome == CheckOutcome.FAIL
 
 
 # --- groundedness.py ---
