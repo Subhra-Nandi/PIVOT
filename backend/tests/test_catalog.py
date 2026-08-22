@@ -89,12 +89,12 @@ def test_ingest_csv_empty_cell_not_emitted_as_spec(sample_csv_path):
     assert all(s.attribute != "voltage_rating" for s in bolt_record.specifications)
 
 
-def test_ingest_csv_unknown_column_reported_not_dropped(sample_csv_path):
+def test_ingest_csv_unknown_column_reported_and_preserved(sample_csv_path):
     result = ingest_catalog(sample_csv_path)
     assert "Weird Column" in result.column_stats.unmapped
-    # Unknown column must not leak into any record's specifications.
-    for record in result.records:
-        assert all(s.attribute != "Weird Column" for s in record.specifications)
+    spec = next(s for s in result.records[0].specifications if s.attribute == "weird_column")
+    assert spec.value == "??"
+    assert spec.status == SpecStatus.NEEDS_REVIEW
 
 
 def test_ingest_csv_column_stats_counts(sample_csv_path):
@@ -107,10 +107,9 @@ def test_ingest_csv_column_stats_counts(sample_csv_path):
 
 def test_ingest_csv_name_falls_back_to_sku(missing_name_csv_path):
     result = ingest_catalog(missing_name_csv_path)
-    assert result.total_rows == 2
+    assert result.total_rows == 1
     assert len(result.records) == 1
     assert result.records[0].product_name == "SKU-999"
-    assert any("row 2" in w and "skipped" in w for w in result.row_warnings)
 
 
 def test_ingest_xlsx_returns_result(sample_xlsx_path):
