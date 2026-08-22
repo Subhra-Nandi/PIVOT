@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 
 from fastapi.testclient import TestClient
+from openpyxl import Workbook
 
 from app.main import app
 from app import main as main_module
@@ -77,6 +78,45 @@ def test_extract_file_rejects_readable_non_product_catalog_with_diagnostics():
     assert "does not appear to contain a product catalog" in detail["message"]
     assert detail["reason"] == "No product identity column could be identified."
     assert detail["detected_headers"] == ["sepal_length", "sepal_width", "petal_length", "species"]
+
+
+def test_xlsx_unknown_attributes_are_unverified_not_conflicts(tmp_path):
+    """Exercise the live catalog route: custom columns are uncertainty, not disagreement."""
+    path = tmp_path / "supplier_motor_catalog.xlsx"
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Products"
+    sheet.append([
+        "Item", "Mfr", "Item Code", "Rated Volts", "Unit Cost",
+        "Horsepower", "Shaft Diameter", "Insulation Class", "Mounting Style", "Color Code",
+    ])
+    sheet.append([
+        "Industrial Motor X1", "Omega", "OM-X1", "24V", 999,
+        "10 HP", "28 mm", "F", "Foot Mount", "BLK-01",
+    ])
+    workbook.save(path)
+
+    with path.open("rb") as file:
+        response = client.post(
+            "/extract/file",
+            files={"file": ("supplier_motor_catalog.xlsx", file, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        )
+
+    assert response.status_code == 200
+    product = response.json()["items"][0]["product_record"]
+    statuses = {spec["attribute"]: spec["status"] for spec in product["specifications"]}
+    values = {spec["attribute"]: spec["value"] for spec in product["specifications"]}
+    assert statuses["voltage_rating"] == "extracted"
+    for attribute, value in {
+        "horsepower": "10 HP",
+        "shaft_diameter": "28 mm",
+        "insulation_class": "F",
+        "mounting_style": "Foot Mount",
+        "color_code": "BLK-01",
+    }.items():
+        assert statuses[attribute] == "needs_review"
+        assert values[attribute] == value
+    assert product["validation"]["conflicts"] == []
 
 
 def test_extract_file_rejects_unsupported_extension():
