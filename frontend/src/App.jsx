@@ -5,6 +5,7 @@ import SourceInspector from './components/SourceInspector';
 import VerifiedRecord from './components/VerifiedRecord';
 import CommerceOutput from './components/CommerceOutput';
 import { resolveConflict } from './lib/resolveConflict';
+import { summarizeSpecs } from './lib/specClassification';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pivot-backend-8ydb.onrender.com';
 
@@ -154,16 +155,13 @@ export default function App() {
 
   const record = example.product_record ?? {};
   const specs = record.specifications ?? [];
-  const grounded = specs.filter((s) => s.status === 'extracted').length;
-  const conflictAttributes = new Set((record.validation?.conflicts ?? []).map((conflict) => conflict.attribute));
-  const unverified = specs.filter((s) => (s.status === 'inferred' || s.status === 'needs_review') && !conflictAttributes.has(s.attribute)).length;
-  const conflictCount = record.validation?.conflicts?.length ?? 0;
+  const counts = summarizeSpecs(specs, record.validation?.conflicts ?? []);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
       <TrustHud
         overallConfidence={record.validation?.overall_confidence}
-        counts={{ grounded, unverified, conflict: conflictCount }}
+        counts={counts}
         activeFilter={statusFilter}
         onFilterChange={setStatusFilter}
       />
