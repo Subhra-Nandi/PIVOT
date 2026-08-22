@@ -246,6 +246,6 @@ The live backend (`pivot-backend-8ydb.onrender.com`) runs on Render's free tier,
 
 <div align="center">
 
-**[Live App](https://pivot-hhifcq9kd-subhra-nandis-projects.vercel.app/)** · **[API Health](https://pivot-backend-8ydb.onrender.com/health)** · **[Repository](https://github.com/Subhra-Nandi/PIVOT)**
+**[Live App](https://pivot-seven-eta.vercel.app)** · **[API Health](https://pivot-backend-8ydb.onrender.com/health)** · **[Repository](https://github.com/Subhra-Nandi/PIVOT)**
 
 </div>
