@@ -10,7 +10,7 @@ import MultiSourceCompare from './components/MultiSourceCompare';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pivot-backend-8ydb.onrender.com';
 
 export default function App() {
-  const [baseExample, setBaseExample] = useState(null);
+  const [uploadResult, setUploadResult] = useState(null);
   const [overridesByExample, setOverridesByExample] = useState({});
   const [statusFilter, setStatusFilter] = useState(null); // null | 'extracted' | 'inferred' | 'needs_review'
   const [activeSnippet, setActiveSnippet] = useState(null);
@@ -21,20 +21,20 @@ export default function App() {
 
   // Fold accepted conflict resolutions onto the live extraction result.
   const example = useMemo(() => {
-    if (!baseExample) return null;
-    const overrides = overridesByExample[baseExample.example_id] ?? {};
+    if (!uploadResult) return null;
+    const overrides = overridesByExample[uploadResult.example_id] ?? {};
     return Object.entries(overrides).reduce(
       (acc, [attribute, acceptedIndex]) => resolveConflict(acc, attribute, acceptedIndex),
-      baseExample
+      uploadResult
     );
-  }, [baseExample, overridesByExample]);
+  }, [uploadResult, overridesByExample]);
 
   function handleResolveConflict(attribute, acceptedIndex) {
-    if (!baseExample) return;
+    if (!uploadResult) return;
     setOverridesByExample((prev) => ({
       ...prev,
-      [baseExample.example_id]: {
-        ...prev[baseExample.example_id],
+      [uploadResult.example_id]: {
+        ...prev[uploadResult.example_id],
         [attribute]: acceptedIndex,
       },
     }));
@@ -87,7 +87,7 @@ export default function App() {
   ...liveData,
 };
 
-      setBaseExample(formattedData);
+      setUploadResult(formattedData);
       setStatusFilter(null);
       setActiveSnippet(null);
     } catch (err) {
@@ -100,19 +100,20 @@ export default function App() {
 
   const record = example?.product_record ?? null;
   const specs = record?.specifications ?? [];
-  const counts = record ? summarizeSpecs(specs, record.validation?.conflicts ?? []) : null;
+  const counts = record
+    ? summarizeSpecs(specs, record.validation?.conflicts ?? [])
+    : { grounded: 0, unverified: 0, conflict: 0 };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans">
-      {record && <TrustHud
-          overallConfidence={record.validation?.overall_confidence}
+      <TrustHud
+          overallConfidence={record?.validation?.overall_confidence}
           counts={counts}
           activeFilter={statusFilter}
           onFilterChange={setStatusFilter}
-        />}
+        />
 
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-        <MultiSourceCompare apiBaseUrl={API_BASE_URL} />
         {/* Live Upload Box */}
         <div className="mt-6 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-lime-400/50">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -173,7 +174,7 @@ export default function App() {
             <div className="flex max-h-48 flex-wrap gap-2 overflow-auto">
               {example.items.map((item, itemIndex) => (
                 <button key={item.product_record.product_id || itemIndex}
-                  onClick={() => setBaseExample({ ...example, product_record: item.product_record, commerce: item.commerce })}
+                  onClick={() => setUploadResult({ ...example, product_record: item.product_record, commerce: item.commerce })}
                   className="rounded-lg border border-zinc-700 px-3 py-2 text-left font-mono text-xs text-zinc-300 hover:border-lime-400 hover:text-lime-300">
                   {item.product_record.product_name || `Product ${itemIndex + 1}`}
                 </button>
@@ -185,6 +186,8 @@ export default function App() {
         {record && <div className="mt-6">
             <CommerceOutput commerce={example.commerce} />
           </div>}
+
+        <MultiSourceCompare apiBaseUrl={API_BASE_URL} />
       </main>
     </div>
   );
