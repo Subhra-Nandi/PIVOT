@@ -179,14 +179,14 @@ def test_validate_record_demotes_status_on_failing_check():
     assert record.specifications[0].confidence < 0.5
 
 
-def test_validate_record_unknown_attribute_stays_extracted_but_lower_confidence():
+def test_validate_record_unknown_attribute_is_unverified_with_lower_confidence():
     baseline = _record_with_spec(_spec("voltage_rating", "12", "V"))
     validate_record(baseline)
 
     unknown = _record_with_spec(_spec("quantum_flux_capacity", "42"))
     validate_record(unknown)
 
-    assert unknown.specifications[0].status == SpecStatus.EXTRACTED  # unverifiable, not rejected
+    assert unknown.specifications[0].status == SpecStatus.NEEDS_REVIEW
     assert unknown.specifications[0].confidence < baseline.specifications[0].confidence
 
 
