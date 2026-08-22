@@ -112,6 +112,18 @@ def test_match_availability_no_match_returns_none():
     assert match_availability(None) is None
 
 
+def test_match_availability_handles_underscore_snake_case():
+    """Regression test: ingest_catalog() (and this repo's own
+    demo_catalog.csv fixture) stores availability as PIVOT's internal
+    snake_case convention ("in_stock"/"out_of_stock"), not the
+    space-separated phrasing the keyword table was written against. Every
+    catalog-sourced record must still match correctly, or the demo's own
+    fixture data would show a false "availability missing" warning."""
+    assert match_availability("in_stock") == "in_stock"
+    assert match_availability("out_of_stock") == "out_of_stock"
+    assert match_availability("IN_STOCK") == "in_stock"
+
+
 def test_normalize_currency_uppercases():
     assert normalize_currency("usd") == "USD"
     assert normalize_currency(None) is None

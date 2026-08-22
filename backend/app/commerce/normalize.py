@@ -112,15 +112,22 @@ def match_availability(raw: Optional[str]) -> Optional[str]:
     """Best-effort match of free-form availability text to Google's
     controlled vocabulary (in_stock / out_of_stock / preorder / backorder).
     Returns None on no confident match rather than defaulting to in_stock —
-    an absent field is safer on a live feed than a fabricated one."""
+    an absent field is safer on a live feed than a fabricated one.
+
+    Underscores are folded to spaces before matching: `ingest_catalog()`
+    (and this repo's own demo_catalog.csv fixture) uses PIVOT's internal
+    snake_case convention ("in_stock", not "in stock") for this exact
+    field, so without this normalization every catalog-sourced record in
+    the demo data would fail this match and show a false "availability
+    missing" warning despite the value being present and valid.
+    """
     if not raw:
         return None
-    lowered = raw.strip().lower()
+    lowered = raw.strip().lower().replace("_", " ")
     for keyword, value in _AVAILABILITY_KEYWORDS:
         if keyword in lowered:
             return value
     return None
-
 
 def confidence_bucket(score: float) -> str:
     """Coarse confidence bucket for fields (like Google's custom_label_N)
