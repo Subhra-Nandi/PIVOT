@@ -6,6 +6,7 @@ import VerifiedRecord from './components/VerifiedRecord';
 import CommerceOutput from './components/CommerceOutput';
 import { resolveConflict } from './lib/resolveConflict';
 import { summarizeSpecs } from './lib/specClassification';
+import MultiSourceCompare from './components/MultiSourceCompare';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://pivot-backend-8ydb.onrender.com';
 
@@ -169,6 +170,7 @@ export default function App() {
       />
 
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+        <MultiSourceCompare apiBaseUrl={API_BASE_URL} />
         <DemoBar
           examples={index}
           selectedId={selectedId}
