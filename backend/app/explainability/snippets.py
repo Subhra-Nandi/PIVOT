@@ -14,7 +14,7 @@ from app.ingestion.models import BlockType, ContentBlock
 DEFAULT_SNIPPET_LEN = 200
 
 
-def make_snippet(block: ContentBlock, max_len: int = DEFAULT_SNIPPET_LEN) -> str:
+def make_snippet(block: ContentBlock, max_len: int = DEFAULT_SNIPPET_LEN, needle: str | None = None) -> str:
     """Flatten a block's content into a single-line, citable snippet.
 
     Tables are flattened cell-by-cell; text/heading blocks are used as-is.
@@ -31,5 +31,16 @@ def make_snippet(block: ContentBlock, max_len: int = DEFAULT_SNIPPET_LEN) -> str
     if block.section:
         text = f"[{block.section}] {text}"
     if len(text) > max_len:
-        text = text[: max_len - 1].rstrip() + "…"
+        match_at = text.lower().find(needle.lower()) if needle else -1
+        if match_at >= 0:
+            start = max(0, match_at - max_len // 3)
+            end = min(len(text), start + max_len)
+            excerpt = text[start:end]
+            if start:
+                excerpt = "…" + excerpt[1:]
+            if end < len(text):
+                excerpt = excerpt.rstrip() + "…"
+            text = excerpt[:max_len]
+        else:
+            text = text[: max_len - 1].rstrip() + "…"
     return text
