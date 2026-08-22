@@ -18,6 +18,7 @@ export default function App() {
   // Live Extraction State
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   // Fold accepted conflict resolutions onto the live extraction result.
   const example = useMemo(() => {
@@ -98,6 +99,13 @@ export default function App() {
     }
   }
 
+  function handleDrop(event) {
+    event.preventDefault();
+    setIsDragActive(false);
+    const [file] = event.dataTransfer.files;
+    if (file) handleFileUpload({ target: { files: [file] } });
+  }
+
   const record = example?.product_record ?? null;
   const specs = record?.specifications ?? [];
   const counts = record
@@ -113,27 +121,34 @@ export default function App() {
           onFilterChange={setStatusFilter}
         />
 
-      <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-        {/* Live Upload Box */}
-        <div className="mt-6 rounded-xl border border-dashed border-zinc-800 bg-zinc-900/40 p-4 transition-colors hover:border-lime-400/50">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-left">
-              <p className="font-mono text-sm font-medium text-zinc-200">
-                ⚡ Live Backend File Extraction
-              </p>
-              <p className="font-mono text-xs text-zinc-400">
-                Upload a product datasheet or supplier catalog — PDF, DOCX, CSV, XLSX.
-              </p>
-            </div>
+      <main className="mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+        <section className="mb-7 max-w-2xl">
+          <p className="font-mono text-xs font-medium uppercase tracking-[0.18em] text-lime-300">Product data workspace</p>
+          <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-zinc-100 sm:text-3xl">Turn messy product data into trusted, commerce-ready records.</h2>
+          <p className="mt-3 font-mono text-xs text-zinc-500">PDF · DOCX · CSV · XLSX</p>
+        </section>
 
+        <section
+          className={`rounded-2xl border bg-zinc-900/70 p-5 shadow-xl transition-colors sm:p-7 ${isDragActive ? 'border-lime-400 bg-lime-400/5' : 'border-zinc-800'}`}
+          onDragEnter={(event) => { event.preventDefault(); setIsDragActive(true); }}
+          onDragOver={(event) => event.preventDefault()}
+          onDragLeave={() => setIsDragActive(false)}
+          onDrop={handleDrop}
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
+              <p className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-lime-300">Live backend extraction</p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-zinc-100">Upload a product source</h3>
+              <p className="mt-1.5 max-w-xl text-sm text-zinc-400">Drag and drop a datasheet or catalog, or choose a file to extract, validate, and inspect its product record.</p>
+            </div>
+            <div className="shrink-0">
               <label
                 htmlFor="live-file-upload"
-                className={`inline-flex cursor-pointer items-center justify-center rounded-lg bg-lime-400 px-4 py-2 font-mono text-xs font-semibold text-zinc-950 shadow transition-all hover:bg-lime-300 ${
+                className={`inline-flex cursor-pointer items-center justify-center rounded-lg bg-lime-400 px-5 py-3 font-mono text-xs font-semibold text-zinc-950 shadow-glow-lime-sm transition-all hover:bg-lime-300 ${
                   isUploading ? 'opacity-50 pointer-events-none' : ''
                 }`}
               >
-                {isUploading ? 'Extracting via API (this can take up to a minute)...' : 'Upload & Extract File'}
+                {isUploading ? 'Extracting…' : 'Choose file & extract'}
               </label>
               <input
                 id="live-file-upload"
@@ -146,12 +161,14 @@ export default function App() {
             </div>
           </div>
 
+          <p className="mt-5 font-mono text-[11px] text-zinc-500">Drop a file anywhere in this card · PDF, DOCX, CSV, XLSX, XLSM</p>
+
           {uploadError && (
             <div className="mt-3 font-mono text-xs text-rose-400">
               Error: {uploadError}
             </div>
           )}
-        </div>
+        </section>
 
         {record && <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <SourceInspector
