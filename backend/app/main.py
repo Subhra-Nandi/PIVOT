@@ -149,6 +149,7 @@ async def extract_from_file(file: UploadFile = File(...)):
             }
 
         doc = parse_pdf(tmp_path) if suffix == ".pdf" else parse_docx(tmp_path)
+        doc.source_filename = os.path.basename(file.filename or doc.source_filename)
         try:
             record = extract_product(doc)
         except (ExtractionError, LLMError) as exc:
