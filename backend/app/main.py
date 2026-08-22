@@ -80,8 +80,8 @@ async def extract_from_file(file: UploadFile = File(...)):
     if every configured provider fails or no API key is set.
     """
     suffix = os.path.splitext(file.filename or "")[1].lower()
-    if suffix not in {".pdf", ".docx", ".csv", ".xlsx"}:
-        raise HTTPException(400, f"Unsupported file type '{suffix}'. Use .pdf, .docx, .csv, or .xlsx.")
+    if suffix not in {".pdf", ".docx", ".csv", ".xlsx", ".xlsm"}:
+        raise HTTPException(400, f"Unsupported file type '{suffix}'. Use .pdf, .docx, .csv, .xlsx, or .xlsm.")
 
     contents = await file.read()
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -89,7 +89,7 @@ async def extract_from_file(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
-        if suffix in {".csv", ".xlsx"}:
+        if suffix in {".csv", ".xlsx", ".xlsm"}:
             result = ingest_catalog(tmp_path)
             if not result.records:
                 raise HTTPException(400, "No valid product records found in catalog file.")
@@ -101,6 +101,9 @@ async def extract_from_file(file: UploadFile = File(...)):
                 "source_format": result.source_format,
                 "total_rows": result.total_rows,
                 "row_warnings": result.row_warnings,
+                "catalog": {"sheet": result.sheet, "header_row": result.header_row, "total_rows": result.total_rows, "accepted_rows": len(result.records), "rejected_rows": result.rejected_rows},
+                "column_mapping": result.column_stats.mapping_details,
+                "warnings": result.warnings,
                 "items": [
                     {"product_record": record.model_dump(mode="json"), "commerce": map_to_all(record)}
                     for record in result.records

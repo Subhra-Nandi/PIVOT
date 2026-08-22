@@ -65,7 +65,7 @@ _ATTRIBUTES: list[AttributeSpec] = [
         allowed_units=["V", "kV", "mV"],
         min_value=1,
         max_value=1000,
-        aliases=["voltage", "rated voltage", "rated_voltage", "voltage rating"],
+        aliases=["voltage", "rated voltage", "rated volts", "rated_voltage", "voltage rating"],
         notes="Common on connectors, relays.",
     ),
     AttributeSpec(

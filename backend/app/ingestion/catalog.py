@@ -23,12 +23,14 @@ from __future__ import annotations
 
 import csv
 import os
+import re
+from difflib import SequenceMatcher
 from typing import Optional
 
 from openpyxl import load_workbook
 from pydantic import BaseModel, Field
 
-from app.schemas.attributes import resolve_attribute
+from app.schemas.attributes import ATTRIBUTE_DICTIONARY, resolve_attribute
 from app.schemas.product import (
     Category,
     Commercial,
@@ -51,12 +53,22 @@ _CORE_COLUMNS = {
     "product_name": "product_name",
     "name": "product_name",
     "product name": "product_name",
+    "item": "product_name",
+    "item name": "product_name",
+    "item description": "product_name",
+    "product description": "product_name",
     "title": "product_name",
     "brand": "brand",
     "manufacturer": "brand",
+    "mfr": "brand",
+    "make": "brand",
     "description": "description",
     "category": "category",
     "sku": "sku",
+    "item code": "sku",
+    "product code": "sku",
+    "part code": "sku",
+    "model number": "mpn",
     "gtin": "gtin",
     "upc": "gtin",
     "ean": "gtin",
@@ -64,6 +76,7 @@ _CORE_COLUMNS = {
     "part number": "mpn",
     "part_number": "mpn",
     "price": "price",
+    "unit cost": "price",
     "currency": "currency",
     "availability": "availability",
     "stock status": "availability",
@@ -79,6 +92,7 @@ class ColumnMappingStats(BaseModel):
     mapped_core: list[str] = Field(default_factory=list)
     mapped_spec: dict[str, str] = Field(default_factory=dict)  # header -> canonical attribute
     unmapped: list[str] = Field(default_factory=list)
+    mapping_details: dict[str, dict] = Field(default_factory=dict)
 
 
 class CatalogIngestResult(BaseModel):
@@ -91,31 +105,78 @@ class CatalogIngestResult(BaseModel):
     records: list[ProductRecord] = Field(default_factory=list)
     column_stats: ColumnMappingStats = Field(default_factory=ColumnMappingStats)
     row_warnings: list[str] = Field(default_factory=list)  # e.g. "row 12: no product name"
+    sheet: Optional[str] = None
+    header_row: int = 1
+    rejected_rows: int = 0
+    warnings: list[str] = Field(default_factory=list)
 
 
 def _normalize_header(header: str) -> str:
-    return header.strip().lower()
+    return re.sub(r"[^a-z0-9]+", " ", str(header).strip().lower()).strip()
+
+
+def _header_score(values: list[str]) -> float:
+    known = 0
+    nonempty = 0
+    for value in values:
+        if not value:
+            continue
+        nonempty += 1
+        key = _normalize_header(value)
+        if key in _CORE_COLUMNS or resolve_attribute(key):
+            known += 1
+    if not nonempty:
+        return 0
+    return known * 3 + min(nonempty, 12) * .15
+
+
+def _choose_header(rows: list[list], limit: int = 25) -> tuple[int, list[str]]:
+    candidates = []
+    for index, raw in enumerate(rows[:limit]):
+        values = ["" if v is None else str(v).strip() for v in raw]
+        score = _header_score(values)
+        if score and any(values[j] for j in range(len(values))):
+            candidates.append((score, index, values))
+    if not candidates:
+        return 0, []
+    _, index, values = max(candidates, key=lambda item: (item[0], -item[1]))
+    return index, values
 
 
 def _read_csv_rows(path: str) -> tuple[list[str], list[dict[str, str]]]:
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        headers = list(reader.fieldnames or [])
-        rows = [dict(row) for row in reader]
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            sample = f.read(8192)
+            f.seek(0)
+            candidates = []
+            for delimiter in (",", ";", "\t"):
+                f.seek(0)
+                parsed = list(csv.reader(f, delimiter=delimiter))
+                header_index, headers = _choose_header(parsed)
+                candidates.append((_header_score(headers), -header_index, parsed))
+            _, _, raw_rows = max(candidates, key=lambda item: (item[0], item[1]))
+    except (UnicodeDecodeError, csv.Error):
+        with open(path, newline="", encoding="cp1252") as f:
+            raw_rows = list(csv.reader(f, delimiter=","))
+    header_index, headers = _choose_header(raw_rows)
+    rows = [dict(zip(headers, row)) for row in raw_rows[header_index + 1:] if any(str(v).strip() for v in row)]
     return headers, rows
 
 
-def _read_xlsx_rows(path: str) -> tuple[list[str], list[dict[str, str]]]:
+def _read_xlsx_rows(path: str) -> tuple[list[str], list[dict[str, str]], str, int]:
     wb = load_workbook(path, read_only=True, data_only=True)
-    sheet = wb.active
-    row_iter = sheet.iter_rows(values_only=True)
-    try:
-        header_row = next(row_iter)
-    except StopIteration:
-        return [], []
-    headers = [str(h).strip() if h is not None else "" for h in header_row]
+    selected = None
+    for sheet in wb.worksheets:
+        rows = list(sheet.iter_rows(min_row=1, max_row=25, values_only=True))
+        index, headers = _choose_header([list(r) for r in rows])
+        score = _header_score(headers)
+        if selected is None or score > selected[0]:
+            selected = (score, sheet, index, headers)
+    if not selected or not selected[3]:
+        return [], [], wb.active.title, 1
+    _, sheet, header_index, headers = selected
     rows = []
-    for raw_row in row_iter:
+    for raw_row in sheet.iter_rows(min_row=header_index + 2, values_only=True):
         # Cells are typed by openpyxl (float/int/str/None) — stringify so
         # downstream mapping logic matches the CSV path exactly.
         row = {
@@ -124,7 +185,7 @@ def _read_xlsx_rows(path: str) -> tuple[list[str], list[dict[str, str]]]:
             if i < len(headers) and headers[i]
         }
         rows.append(row)
-    return headers, rows
+    return headers, rows, sheet.title, header_index + 1
 
 
 def _build_column_map(headers: list[str]) -> tuple[dict[str, str], dict[str, str], list[str]]:
@@ -137,9 +198,7 @@ def _build_column_map(headers: list[str]) -> tuple[dict[str, str], dict[str, str
         if not header:
             continue
         normalized = _normalize_header(header)
-        core_field = _CORE_COLUMNS.get(normalized) or _CORE_COLUMNS.get(
-            normalized.replace("_", " ")
-        )
+        core_field = _CORE_COLUMNS.get(normalized)
         if core_field:
             core_map[header] = core_field
             continue
@@ -147,7 +206,22 @@ def _build_column_map(headers: list[str]) -> tuple[dict[str, str], dict[str, str
         if attr_spec:
             spec_map[header] = attr_spec.attribute
         else:
-            unmapped.append(header)
+            # Bounded fuzzy matching avoids turning arbitrary supplier text
+            # into a field; unknown columns remain source-grounded customs.
+            # Fuzzy-match only against public canonical/alias labels. Internal
+            # underscore spellings are not useful candidates and can make a
+            # near-exact typo lose a tie to an unresolved label.
+            choices = [(key, target) for key, target in _CORE_COLUMNS.items() if "_" not in key]
+            choices += [(alias, spec.attribute) for spec in ATTRIBUTE_DICTIONARY.values() for alias in spec.aliases]
+            match, target = max(choices, key=lambda item: SequenceMatcher(None, normalized, _normalize_header(item[0])).ratio(), default=("", ""))
+            ratio = SequenceMatcher(None, normalized, _normalize_header(match)).ratio()
+            if ratio >= .9:
+                if target in set(_CORE_COLUMNS.values()):
+                    core_map[header] = target
+                else:
+                    spec_map[header] = target
+            else:
+                unmapped.append(header)
     return core_map, spec_map, unmapped
 
 
@@ -155,7 +229,7 @@ def _row_to_record(
     row: dict[str, str],
     row_number: int,
     core_map: dict[str, str],
-    spec_map: dict[str, str],
+    spec_map: dict[str, str], unmapped: list[str],
     source_id: str,
     filename: str,
     row_warnings: list[str],
@@ -202,6 +276,12 @@ def _row_to_record(
                 ),
             )
         )
+    for header in unmapped:
+        raw_value = (row.get(header) or "").strip()
+        if raw_value:
+            specifications.append(Specification(attribute=_normalize_header(header).replace(" ", "_"), value=raw_value,
+                status=SpecStatus.NEEDS_REVIEW, confidence=0.3,
+                source=SpecSource(type=SourceType.DOCUMENT, reference=source_id, snippet=f"row {row_number}, column '{header}'")))
 
     return ProductRecord(
         product_name=product_name,
@@ -243,9 +323,10 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
     if ext == ".csv":
         source_format = "csv"
         headers, rows = _read_csv_rows(path)
+        sheet, header_row = None, 1
     elif ext in (".xlsx", ".xlsm"):
         source_format = "xlsx"
-        headers, rows = _read_xlsx_rows(path)
+        headers, rows, sheet, header_row = _read_xlsx_rows(path)
     else:
         raise ValueError(f"Unsupported catalog file type '{ext or '(none)'}' for '{path}'. Supported: .csv, .xlsx")
 
@@ -255,6 +336,7 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
         mapped_core=sorted(set(core_map.values())),
         mapped_spec=spec_map,
         unmapped=unmapped,
+        mapping_details={h: {"target": f, "method": "alias", "confidence": 1.0} for h, f in core_map.items()} | {h: {"target": a, "method": "alias", "confidence": 1.0} for h, a in spec_map.items()} | {h: {"target": _normalize_header(h).replace(" ", "_"), "method": "custom_attribute", "confidence": 0.0} for h in unmapped},
     )
 
     # Imported here, not at module top level: app.validation's package init
@@ -271,7 +353,7 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
     for i, row in enumerate(rows):
         # Row numbers are 1-indexed against the data rows (header excluded),
         # matching how a user reading the spreadsheet in a viewer would count.
-        record = _row_to_record(row, i + 1, core_map, spec_map, source_id, filename, row_warnings)
+        record = _row_to_record(row, i + 1, core_map, spec_map, unmapped, source_id, filename, row_warnings)
         if record is not None:
             records.append(validate_record(record))
 
@@ -282,4 +364,8 @@ def ingest_catalog(path: str) -> CatalogIngestResult:
         records=records,
         column_stats=column_stats,
         row_warnings=row_warnings,
+        sheet=sheet,
+        header_row=header_row,
+        rejected_rows=len(rows) - len(records),
+        warnings=row_warnings,
     )

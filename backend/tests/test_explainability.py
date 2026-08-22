@@ -182,6 +182,8 @@ def test_unresolvable_block_id_left_as_is(spec_sheet_pdf):
     resolve_citations(record, document)
 
     assert record.specifications[0].source.reference == "b9999"
+    assert record.specifications[0].status == SpecStatus.NEEDS_REVIEW
+    assert record.specifications[0].confidence <= 0.3
 
 
 def test_no_specs_does_not_wipe_provenance(spec_sheet_pdf):
@@ -269,6 +271,26 @@ def test_merge_disagreeing_sources_flags_conflict():
     assert set(conflict.values) == {"12V", "24V"}
     assert set(conflict.sources) == {"src-1", "src-2"}
     assert all(s.status == SpecStatus.NEEDS_REVIEW for s in merged.specifications)
+
+
+@pytest.mark.parametrize(
+    "left,right,conflict",
+    [("12 V", "12000 mV", False), ("12 V", "12 kV", True), ("24 V", "12000 mV", True)],
+)
+def test_merge_compares_compatible_units(left, right, conflict):
+    a = _record_with_spec("Widget", "voltage_rating", left, "src-1", "a.pdf")
+    b = _record_with_spec("Widget", "voltage_rating", right, "src-2", "b.pdf")
+    merged = merge_records([a, b])
+    assert bool(merged.validation.conflicts) is conflict
+
+
+def test_merge_text_with_different_units_remains_conflicting():
+    a = _record_with_spec("Widget", "finish", "10", "src-1", "a.pdf")
+    b = _record_with_spec("Widget", "finish", "10", "src-2", "b.pdf")
+    a.specifications[0].unit = "mm"
+    b.specifications[0].unit = "in"
+    merged = merge_records([a, b])
+    assert merged.validation.conflicts
 
 
 def test_merge_recomputes_overall_confidence():

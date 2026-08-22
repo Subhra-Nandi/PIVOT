@@ -16,6 +16,8 @@ one.
 from __future__ import annotations
 
 import itertools
+import re
+from app.validation.units import convert_to_base
 
 from app.schemas.product import Conflict, ProductRecord, Specification, SpecStatus
 
@@ -75,7 +77,15 @@ def merge_records(records: list[ProductRecord]) -> ProductRecord:
 
     conflicts: list[Conflict] = []
     for attribute, specs in by_attribute.items():
-        distinct_values = {s.value.strip().lower() for s in specs}
+        def comparable(spec):
+            match = re.match(r"^\s*([-+]?\d+(?:\.\d+)?)\s*([^\d\s].*)?\s*$", spec.value)
+            unit = spec.unit or (match.group(2).strip() if match and match.group(2) else None)
+            if match and unit:
+                converted = convert_to_base(float(match.group(1)), unit)
+                if converted:
+                    return (converted[1], round(converted[0], 9))
+            return (spec.value.strip().lower(), (unit or "").strip().lower())
+        distinct_values = {comparable(s) for s in specs}
         if len(distinct_values) <= 1:
             continue  # every contributing source agrees (or only one did)
 
