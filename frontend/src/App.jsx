@@ -93,7 +93,12 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`Backend request failed with status ${response.status}`);
+        let detail = `Backend request failed with status ${response.status}`;
+        try {
+          const body = await response.json();
+          detail = body.detail || body.message || detail;
+        } catch { /* non-JSON response */ }
+        throw new Error(detail);
       }
 
       const liveData = await response.json();
@@ -214,6 +219,21 @@ export default function App() {
             onResolveConflict={handleResolveConflict}
           />
         </div>
+
+        {example.items?.length > 1 && (
+          <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+            <div className="mb-3 font-mono text-sm text-zinc-300">{example.items.length} products detected</div>
+            <div className="flex max-h-48 flex-wrap gap-2 overflow-auto">
+              {example.items.map((item, itemIndex) => (
+                <button key={item.product_record.product_id || itemIndex}
+                  onClick={() => setBaseExample({ ...example, product_record: item.product_record, commerce: item.commerce })}
+                  className="rounded-lg border border-zinc-700 px-3 py-2 text-left font-mono text-xs text-zinc-300 hover:border-lime-400 hover:text-lime-300">
+                  {item.product_record.product_name || `Product ${itemIndex + 1}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-6">
           <CommerceOutput commerce={example.commerce} />
