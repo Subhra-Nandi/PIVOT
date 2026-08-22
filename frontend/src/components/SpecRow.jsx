@@ -9,7 +9,7 @@ const BAR_COLOR = {
 
 export default function SpecRow({ spec, resolvedSource, onSnippetHover }) {
   const [open, setOpen] = useState(false);
-  const hasCitation = Boolean(spec.source);
+  const hasCitation = Boolean(spec.source && resolvedSource && spec.status !== 'needs_review');
   const searchText = `${spec.value}${spec.unit ? ` ${spec.unit}` : ''}`;
 
   return (

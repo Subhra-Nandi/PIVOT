@@ -103,13 +103,18 @@ export default function App() {
 
       const liveData = await response.json();
 
+      const sourceText = liveData.source?.blocks?.map((block) => {
+        const location = block.page ? `Page ${block.page}` : (block.section || 'Source');
+        return `${location}\n${block.text}`;
+      }).join('\n\n') || '';
+
       const formattedData = {
        example_id: `custom_${Date.now()}`,
        raw_input: {
         label: `Live upload: ${file.name}`,
         text: liveData.items
          ? `${liveData.total_rows} row(s) parsed from ${file.name}. Row warnings: ${liveData.row_warnings?.length || 0}.`
-         : `Extracted from ${file.name} via live pipeline — no raw text captured in this response.`,
+         : sourceText || `Extracted from ${file.name} via live pipeline — source text unavailable.`,
 },
   ...liveData,
 };

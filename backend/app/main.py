@@ -33,6 +33,44 @@ from app.ingestion.url_ingest import ingest_url
 from app.llm.base import LLMError
 from app.schemas.product import ProductRecord
 
+
+_SOURCE_BLOCK_LIMIT = 200
+_SOURCE_CHAR_LIMIT = 100_000
+
+
+def _source_payload(doc):
+    """Return bounded, citation-friendly source data from the parsed document."""
+    blocks = []
+    characters = 0
+    truncated = False
+    for block in doc.blocks:
+        text = block.text
+        if text is None and block.table is not None:
+            text = "\n".join(" | ".join(cell or "" for cell in row) for row in block.table)
+        text = text or ""
+        if len(blocks) >= _SOURCE_BLOCK_LIMIT or characters + len(text) > _SOURCE_CHAR_LIMIT:
+            truncated = True
+            break
+        item = {
+            "block_id": block.block_id,
+            "type": block.type.value,
+            "text": text,
+        }
+        if block.page is not None:
+            item["page"] = block.page
+        if block.section is not None:
+            item["section"] = block.section
+        blocks.append(item)
+        characters += len(text)
+    return {
+        "filename": doc.source_filename,
+        "format": doc.source_format.value,
+        "page_count": doc.page_count,
+        "blocks": blocks,
+        "truncated": truncated,
+        "warnings": doc.warnings,
+    }
+
 app = FastAPI(
     title="PIVOT API",
     description="Product intelligence: ingest a document, catalog, or URL and get back a validated, cited, commerce-mapped product record.",
@@ -118,6 +156,7 @@ async def extract_from_file(file: UploadFile = File(...)):
 
         return {
             "product_record": record.model_dump(mode="json"),
+            "source": _source_payload(doc),
             "commerce": map_to_all(record),
         }
     finally:

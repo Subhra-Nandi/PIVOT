@@ -19,6 +19,9 @@ import os
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app import main as main_module
+from app.ingestion.models import BlockType, ContentBlock, IngestedDocument, SourceFormat
+from app.schemas.product import ProductRecord, SpecSource, Specification, SourceType
 
 client = TestClient(app)
 
@@ -59,6 +62,42 @@ def test_extract_file_rejects_unsupported_extension():
     )
     assert response.status_code == 400
     assert "Unsupported file type" in response.json()["detail"]
+
+
+def test_extract_pdf_returns_source_blocks_and_metadata(tmp_path, monkeypatch):
+    document = IngestedDocument(
+        source_filename="datasheet.pdf",
+        source_format=SourceFormat.PDF,
+        page_count=2,
+        blocks=[
+            ContentBlock(block_id="b0000", type=BlockType.TEXT, text="Sensor", page=1),
+            ContentBlock(block_id="b0001", type=BlockType.TEXT, text="Rated voltage: 24 V", page=2),
+        ],
+    )
+    record = ProductRecord(
+        product_name="Sensor",
+        specifications=[Specification(
+            attribute="voltage_rating", value="24 V", unit="V", source=SpecSource(
+                type=SourceType.DOCUMENT, reference="src-1", snippet="Rated voltage: 24 V"
+            )
+        )],
+    )
+    pdf_path = tmp_path / "datasheet.pdf"
+    pdf_path.write_bytes(b"placeholder")
+    monkeypatch.setattr(main_module, "parse_pdf", lambda path: document)
+    monkeypatch.setattr(main_module, "extract_product", lambda doc: record)
+
+    with pdf_path.open("rb") as file:
+        response = client.post("/extract/file", files={"file": ("datasheet.pdf", file, "application/pdf")})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["product_record"]["product_name"] == "Sensor"
+    assert body["source"]["filename"] == "datasheet.pdf"
+    assert body["source"]["page_count"] == 2
+    assert [block["block_id"] for block in body["source"]["blocks"]] == ["b0000", "b0001"]
+    assert body["source"]["blocks"][1]["page"] == 2
+    assert body["source"]["blocks"][1]["text"] == "Rated voltage: 24 V"
 
 
 def test_extract_url_surfaces_fetch_failure_as_502():
